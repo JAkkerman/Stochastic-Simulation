@@ -1,8 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 
-def sample(type, s, row_count, col_count, subsamp):
+def print_to_csv(type, areas):
+
+    string = ''
+    for i in range(len(areas)):
+        string += str(areas[i])+','
+
+    f = open(str(type)+'.csv', "a")
+    f.write(string + '\n')
+    f.close()
+
+
+def sample(type, s, row_count, col_count, subsamps):
     """
     Samples random points fully random, using Latin Hypercube or using
     Orthogonal Sampling, given the type of sampling.
@@ -31,13 +43,22 @@ def sample(type, s, row_count, col_count, subsamp):
 
     # divide rows and colums up in sub-sample spaces if orthogonal
     if type == "Orthogonal":
-        n = int(len(rows)/np.sqrt(subsamp))
+
+        # for orthogonal sampling, n has to be a multiple of the amount of
+        # subsamples. So, round n up.
+        s = subsamps * round(s/subsamps)
+        print(s)
+        n = int(len(rows)/np.sqrt(subsamps))
+
         for i in range(0, len(rows), n):
             for j in range(0, len(cols), n):
                 subspaces += [(rows[i:i+n], cols[j:j+n])]
+
     # if not orthogonal, all rows and columns are part of sample space
     else:
         subspaces += [(rows, cols)]
+
+    # print(subspaces)
 
     # iterate over sample space(s), randomly pick combination of row and column,
     # pick location within
@@ -65,14 +86,18 @@ def sample(type, s, row_count, col_count, subsamp):
     return coordinates
 
 
-def mandelbrot_area(coordinates, i):
+def mandelbrot_area(type, s, i, row_count, col_count, subsamps):
     """
     Estimates the area of the Mandelbrot Set
     """
     inset = 0
     total_area = 3.5*2
 
+    # print(s)
+    coordinates = sample(type, s, row_count, col_count, subsamps)
+    s = subsamps * round(s/subsamps)
     for j in range(s):
+        # print(len(coordinates))
         x0 = coordinates[j][0]
         y0 = coordinates[j][1]
         x = 0
@@ -115,28 +140,56 @@ def plot_diff():
     plt.show()
 
 
+def s_experiment(type, s, i, row_count, col_count, subsamps):
+
+    N = 60
+    # S = np.logspace(1, np.log(5000), 10)
+    S = [9]
+    S += [i**2  for i in range(5,80,5)]
+    i = 1000
+
+    print(f's experiment for {type}')
+
+    for s in S:
+        results_for_s = []
+        for n in range(N):
+            row_count = int(s)
+            col_count = int(s)
+            subsamps  = int(s)
+            area = mandelbrot_area(type, int(s), i, row_count, col_count, subsamps)
+            results_for_s += [area]
+
+        print_to_csv('exp_s_'+str(type), results_for_s)
+
+
 if __name__ == '__main__':
 
     i = 1000
     s = 1000
-    row_count = 2*s
-    col_count = 2*s
-    type      = 'Random'
-    subsamp   = 4
+    row_count = s
+    col_count = s
+    subsamps  = s
 
-    coordinates = sample(type, s, row_count, col_count, subsamp)
-    area        = mandelbrot_area(coordinates, i)
-    print(f'Area with random sampling: {area}')
+    # type = 'Random'
+    # area = mandelbrot_area(type, s, i, row_count, col_count, subsamps)
+    # print(f'Area with random sampling: {area}')
+    #
+    # type = 'LatinHypercube'
+    # area = mandelbrot_area(type, s, i, row_count, col_count, subsamps)
+    # print(f'Area with Latin Hypercube sampling: {area}')
+    #
+    # type = 'Orthogonal'
+    # area = mandelbrot_area(type, s, i, row_count, col_count, subsamps)
+    # print(f'Area with Orthogonal sampling: {area}')
 
-    type = 'LatinHypercube'
-    coordinates = sample(type, s, row_count, col_count, subsamp)
-    area        = mandelbrot_area(coordinates, i)
-    print(f'Area with Latin Hypercube sampling: {area}')
+    type = 'Random'
+    s_experiment(type, s, i, row_count, col_count, subsamps)
 
-    type = 'Orthogonal'
-    coordinates = sample(type, s, row_count, col_count, subsamp)
-    area        = mandelbrot_area(coordinates, i)
-    print(f'Area with Orthogonal sampling: {area}')
+    type = "LatinHypercube"
+    s_experiment(type, s, i, row_count, col_count, subsamps)
+
+    type = "Orthogonal"
+    s_experiment(type, s, i, row_count, col_count, subsamps)
 
     # i = np.logspace(1, 4, 10, dtype=int)
     # j = np.array([int(0.9*I) for I in i])
