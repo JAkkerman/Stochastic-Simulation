@@ -5,10 +5,18 @@ import tabulate as tabul
 import pandas as pd
 import scipy.stats as stats
 
+"""
+This file makes a plots the figures from the report.
+
+Guido Vaessen (12488860)
+Joos Akkerman (11304723)
+Stochastic Simulation - Assignment 1
+"""
+
 
 def plot_s_experiment():
     """
-    Plots confidence interval
+    Plots confidence interval for figure 3 in report
     """
 
     S = [9]
@@ -45,7 +53,7 @@ def plot_s_experiment():
 
 def plot_error():
     """
-    Plots standard deviations
+    Plots variances for figure 4 in report
     """
 
     S = [9]
@@ -85,7 +93,7 @@ def plot_error():
 
 def create_table():
     """
-    Generates table with results
+    Generates table 1 in report
     """
 
     data = {}
@@ -131,15 +139,12 @@ def create_table():
                 stars = '^*'
             all_res += [f'${round(c,3)}'+stars+'$']
 
-        # print(all_res)
-
         return all_res
 
 
     table = {}
     table['$s$'] = [9]+[i**2  for i in range(5,80,5)]
 
-    # table['$\hat{a_R}$'] = [round(j, 3) for j in [avg(i) for i in data['Random']]]
     table['$\hat{A}_R$'] = avg(data['Random'])
     table['$\hat{\sigma}^2_R$'] = std(data['Random'])
 
@@ -163,7 +168,7 @@ def create_table():
 
 def control_variets_fit():
     """
-    Plots the fit for the control variant
+    Plots the fit for the control variant, figure 5 in report
     """
 
     img = plt.imread('mandelbrot_set_2000x2000.png')
@@ -183,13 +188,12 @@ def control_variets_fit():
 
 def control_variets_var():
     """
-    Plots the difference in variance for the control variates
+    Plots the difference in variance for the control variates, figure 6 in report
     """
     S = [9]
     S += [i**2  for i in range(5,80,5)]
 
-    # for type in ['Random', 'LatinHypercube', 'Orthogonal']:
-    for type in ['LatinHypercube']:
+    for type in ['Random', 'LatinHypercube', 'Orthogonal']:
         fig, ax = plt.subplots(1,2, figsize=[8,3.5])
         for f in ['s_', 'cont_']:
             with open('exp_'+f+type+'.csv', newline='\n') as csvfile:
@@ -215,7 +219,7 @@ def control_variets_var():
 
                 ax[0].semilogx(S, avg - (1.96*std)/np.sqrt(S), label='Pure '+type, color=color)
                 ax[0].semilogx(S, avg + (1.96*std)/np.sqrt(S), color=color)
-                # ax1.tick_params(labelsize=14)
+
             elif f == 'cont_':
                 ax[1].plot(S, std, label='Control variates', color=color, linestyle='--')
 
@@ -241,56 +245,12 @@ def control_variets_var():
     plt.savefig(f'cont_experiment_{type}.pdf', bbox_inches = "tight")
 
 
-def plot_antithetic():
-    S = [9]
-    S += [i**2  for i in range(5,80,5)]
-
-    for type in ['Random1', 'Orthogonal', 'Antithetic']:
-        with open('exp_s_'+type+'.csv', newline='\n') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',')
-
-            areas = []
-            for i,row in enumerate(reader):
-                row = [np.single(i) for i in row if i != '']
-                areas += [(np.average(row), np.var(row))]
-
-        std = np.array([i[1] for i in areas])
-
-        if type == 'Random1':
-            plt.plot(S, std, label=type, color='blue')
-            plt.tick_params(labelsize=14)
-        elif type == 'Orthogonal':
-            plt.plot(S, std, label=type, color='green')
-            plt.tick_params(labelsize=14)
-        elif type == 'Antithetic':
-            plt.plot(S, std, label=type, color='orange')
-            plt.tick_params(labelsize=14)
-        # elif type == 'Control':
-
-    control_X = control_variets()
-    plt.plot(S, [np.var(i) for i in control_X], label='Control', color='purple')
-    plt.tick_params(labelsize=14)
-
-
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.ylabel('$\hat{\sigma}^2_i$', fontsize=12)
-    plt.xlabel('sample size (s)',fontsize=12)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
-    plt.legend()
-    plt.show()
-    # plt.savefig('s_experiment_anti.pdf', bbox_inches = "tight")
-
-
 if __name__ == '__main__':
     # plot_s_experiment()
 
     # plot_error()
 
     create_table()
-
-    # plot_antithetic()
 
     # control_variets_fit()
 

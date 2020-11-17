@@ -3,6 +3,15 @@ import matplotlib.cm as clr
 import csv
 import numpy as np
 
+"""
+This file makes a plot of the Mandelbrot, for pregenerated data. Shown in
+figure 1 in the report.
+
+Guido Vaessen (12488860)
+Joos Akkerman (11304723)
+Stochastic Simulation - Assignment 1
+"""
+
 size_x = 2000
 size_y = 2000
 

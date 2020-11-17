@@ -3,8 +3,20 @@ import matplotlib.pyplot as plt
 import math
 import csv
 
+"""
+This file computes the area of the Mandelbrot set for different sampling
+techniques and using for control variates.
+
+Guido Vaessen (12488860)
+Joos Akkerman (11304723)
+Stochastic Simulation - Assignment 1
+"""
+
 
 def print_to_csv(type, areas):
+    """
+    Prints results to csv
+    """
 
     string = ''
     for i in range(len(areas)):
@@ -30,19 +42,6 @@ def sample(type, s, row_count, col_count, subsamps):
             x = np.random.uniform(-2.5, 1)
             y = np.random.uniform(-1, 1)
             coordinates += [(x, y)]
-
-        return coordinates
-
-    if type == "Antithetic":
-
-        # for i in range(int(s/2)):
-        while len(coordinates)<s:
-            x = np.random.uniform(-2.5, 1)
-            x_mir = -0.75 - (x+0.75)
-            y = np.random.uniform(-1, 1)
-            y_mir = -y
-            # print((x, y), (x_mir, y_mir))
-            coordinates += [(x, y), (x_mir, y_mir)]
 
         return coordinates
 
@@ -102,16 +101,17 @@ def mandelbrot_area(type, s, i, row_count, col_count, subsamps):
     inset = 0
     total_area = 3.5*2
 
-    # print(s)
+    # request coordinates. These are sampled based on the given type of sampling
     coordinates = sample(type, s, row_count, col_count, subsamps)
     s = subsamps * round(s/subsamps)
     for j in range(s):
-        # print(len(coordinates))
         x0 = coordinates[j][0]
         y0 = coordinates[j][1]
         x = 0
         y = 0
         iteration = 0
+        # perform equation (1) for Mandelbrot set (see report) until maximum i
+        # is reached. If i is reached, count coordinate as part of Mandelbrot set
         while (x*x + y*y) <= 2*2 and iteration < i:
             z = x*x - y*y + x0
             y = 2*x*y + y0
@@ -126,12 +126,17 @@ def mandelbrot_area(type, s, i, row_count, col_count, subsamps):
 
 def plot_diff(i, j, s, n_runs=30, type='Random', row_count=1, col_count=1,
               subsamp=4, ax=None, color='blue'):
+    """
+    Plots difference between Aj and Ai
+    """
 
     if ax is None:
         ax = plt.gca()
 
     mean_diff = []
     std_diff = []
+
+    # loop over different values of j, estimate area.
     for J in j:
         difference = []
         for k in range(n_runs):
@@ -144,6 +149,7 @@ def plot_diff(i, j, s, n_runs=30, type='Random', row_count=1, col_count=1,
     mean_diff = np.array(mean_diff)
     std_diff = np.array(std_diff)
 
+    # plot difference between estimated Aj and Ai for different values of j
     ax.plot(j, mean_diff, color=color)
     ax.fill_between(j, mean_diff - std_diff, mean_diff+std_diff, color=color,
                     alpha=0.5)
@@ -159,13 +165,14 @@ def s_experiment(type, s, i, row_count, col_count, subsamps):
     """
 
     N = 60
-    # S = np.logspace(1, np.log(5000), 10)
+    # set values of s
     S = [9]
     S += [i**2  for i in range(5,80,5)]
     i = 1000
 
     print(f's experiment for {type}')
 
+    # loop over different sample sizes s, set rows, columns (LH) and subsamps (Ort)
     for s in S:
         results_for_s = []
         for n in range(N):
@@ -190,6 +197,7 @@ def control_experiment(type, s, i, row_count, col_count, subsamps):
 
     print(f'control variets experiment for {type}')
 
+    # set coordinates for the two circles
     r1  = 0.25
     cx1 = -1
     cy1 = 0
@@ -198,8 +206,12 @@ def control_experiment(type, s, i, row_count, col_count, subsamps):
     cx2 = -0.15
     cy2 = 0
 
+    # compute total area circles
     area_circles = np.pi*r1**2 + np.pi*r2**2
 
+    # iterate over values for s, compute estimates A without control variate,
+    # compute the estimate Ac using the alternative estimator and then compute
+    # the adjusted estimator A'.
     for s in S:
         results_for_s = []
         results_Y = []
@@ -209,9 +221,11 @@ def control_experiment(type, s, i, row_count, col_count, subsamps):
             col_count = int(s)
             subsamps  = int(s)
 
+            # estimation of A
             area, coordinates = mandelbrot_area(type, int(s), i, row_count, col_count, subsamps)
             results_X += [area]
 
+            # estimation of Ac (using the same coordinates as the estimation of A)
             count_in = 0
             for coord in coordinates:
                 d1 = r1**2 - ((cx1-coord[0])**2 + (cy1-coord[1])**2)
@@ -220,9 +234,11 @@ def control_experiment(type, s, i, row_count, col_count, subsamps):
                 if d1 > 0 or d2 > 0:
                     count_in += 1
 
+            # compute area that follows from alternative estimator
             area_cont = 7*(count_in/len(coordinates))
             results_Y += [area_cont]
 
+        # compute the c parameter based on the samples of A and Ac
         c = -np.cov(results_X, results_Y)[0][1]/np.var(results_Y)
 
         results_for_s += [results_X[i] + c*(results_Y[i] - area_circles) for i in range(60)]
@@ -260,9 +276,6 @@ if __name__ == '__main__':
     # s_experiment(type, s, i, row_count, col_count, subsamps)
 
     # type = "Antithetic"
-    # s_experiment(type, s, i, row_count, col_count, subsamps)
-
-    # type = "Control"
     # s_experiment(type, s, i, row_count, col_count, subsamps)
 
     # i = np.logspace(1, 4, 10, dtype=int)
