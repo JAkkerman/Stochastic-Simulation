@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import csv
 
 
 def print_to_csv(type, areas):
@@ -22,8 +23,6 @@ def sample(type, s, row_count, col_count, subsamps):
 
     coordinates = []
 
-    count = 0
-
     # perform simple random sampling. If not random sampling, move further
     if type == "Random":
 
@@ -31,9 +30,22 @@ def sample(type, s, row_count, col_count, subsamps):
             x = np.random.uniform(-2.5, 1)
             y = np.random.uniform(-1, 1)
             coordinates += [(x, y)]
-            count += 1
 
         return coordinates
+
+    if type == "Antithetic":
+
+        # for i in range(int(s/2)):
+        while len(coordinates)<s:
+            x = np.random.uniform(-2.5, 1)
+            x_mir = -0.75 - (x+0.75)
+            y = np.random.uniform(-1, 1)
+            y_mir = -y
+            # print((x, y), (x_mir, y_mir))
+            coordinates += [(x, y), (x_mir, y_mir)]
+
+        return coordinates
+
 
     # Latin Hypercube sampling, with extension if Orthogonal sampling
     # divide sample space in rows and columns
@@ -58,8 +70,6 @@ def sample(type, s, row_count, col_count, subsamps):
     else:
         subspaces += [(rows, cols)]
 
-    # print(subspaces)
-
     # iterate over sample space(s), randomly pick combination of row and column,
     # pick location within
     for subspace in subspaces:
@@ -80,7 +90,6 @@ def sample(type, s, row_count, col_count, subsamps):
 
             x = np.random.uniform(row, row+row_width)
             y = np.random.uniform(col, col+col_width)
-            count += 1
             coordinates += [(x, y)]
 
     return coordinates
@@ -112,10 +121,13 @@ def mandelbrot_area(type, s, i, row_count, col_count, subsamps):
         if iteration == i:
             inset += 1
 
-    return inset/s * total_area
+    return inset/s * total_area, coordinates
 
 
 def plot_diff():
+    """
+
+    """
 
     n_runs = 30
     mean_diff = []
@@ -141,6 +153,9 @@ def plot_diff():
 
 
 def s_experiment(type, s, i, row_count, col_count, subsamps):
+    """
+    Experiment for different values of sample size
+    """
 
     N = 60
     # S = np.logspace(1, np.log(5000), 10)
@@ -156,10 +171,62 @@ def s_experiment(type, s, i, row_count, col_count, subsamps):
             row_count = int(s)
             col_count = int(s)
             subsamps  = int(s)
-            area = mandelbrot_area(type, int(s), i, row_count, col_count, subsamps)
+            area, coordinates = mandelbrot_area(type, int(s), i, row_count, col_count, subsamps)
             results_for_s += [area]
 
         print_to_csv('exp_s_'+str(type), results_for_s)
+
+
+def control_experiment(type, s, i, row_count, col_count, subsamps):
+    """
+    Experiment for control variates
+    """
+
+    N = 60
+    S = [9]
+    S += [i**2  for i in range(5,80,5)]
+    i = 1000
+
+    print(f'control variets experiment for {type}')
+
+    r1  = 0.25
+    cx1 = -1
+    cy1 = 0
+
+    r2  = 0.6
+    cx2 = -0.15
+    cy2 = 0
+
+    area_circles = np.pi*r1**2 + np.pi*r2**2
+
+    for s in S:
+        results_for_s = []
+        results_Y = []
+        results_X = []
+        for n in range(N):
+            row_count = int(s)
+            col_count = int(s)
+            subsamps  = int(s)
+
+            area, coordinates = mandelbrot_area(type, int(s), i, row_count, col_count, subsamps)
+            results_X += [area]
+
+            count_in = 0
+            for coord in coordinates:
+                d1 = r1**2 - ((cx1-coord[0])**2 + (cy1-coord[1])**2)
+                d2 = r2**2 - ((cx2-coord[0])**2 + (cy2-coord[1])**2)
+
+                if d1 > 0 or d2 > 0:
+                    count_in += 1
+
+            area_cont = 7*(count_in/len(coordinates))
+            results_Y += [area_cont]
+
+        c = -np.cov(results_X, results_Y)[0][1]/np.var(results_Y)
+
+        results_for_s += [results_X[i] + c*(results_Y[i] - area_circles) for i in range(60)]
+
+        print_to_csv('exp_cont_'+str(type), results_for_s)
 
 
 if __name__ == '__main__':
@@ -182,15 +249,30 @@ if __name__ == '__main__':
     # area = mandelbrot_area(type, s, i, row_count, col_count, subsamps)
     # print(f'Area with Orthogonal sampling: {area}')
 
-    type = 'Random'
-    s_experiment(type, s, i, row_count, col_count, subsamps)
+    # type = 'Random'
+    # s_experiment(type, s, i, row_count, col_count, subsamps)
 
-    type = "LatinHypercube"
-    s_experiment(type, s, i, row_count, col_count, subsamps)
+    # type = "LatinHypercube"
+    # s_experiment(type, s, i, row_count, col_count, subsamps)
+    #
+    # type = "Orthogonal"
+    # s_experiment(type, s, i, row_count, col_count, subsamps)
 
-    type = "Orthogonal"
-    s_experiment(type, s, i, row_count, col_count, subsamps)
+    # type = "Antithetic"
+    # s_experiment(type, s, i, row_count, col_count, subsamps)
+
+    # type = "Control"
+    # s_experiment(type, s, i, row_count, col_count, subsamps)
 
     # i = np.logspace(1, 4, 10, dtype=int)
     # j = np.array([int(0.9*I) for I in i])
     # plot_diff(i,j)
+
+    # type = 'Random'
+    # control_experiment(type, s, i, row_count, col_count, subsamps)
+
+    type = 'LatinHypercube'
+    control_experiment(type, s, i, row_count, col_count, subsamps)
+
+    type = 'Orthogonal'
+    control_experiment(type, s, i, row_count, col_count, subsamps)
