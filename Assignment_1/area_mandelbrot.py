@@ -124,32 +124,33 @@ def mandelbrot_area(type, s, i, row_count, col_count, subsamps):
     return inset/s * total_area, coordinates
 
 
-def plot_diff():
-    """
+def plot_diff(i, j, s, n_runs=30, type='Random', row_count=1, col_count=1,
+              subsamp=4, ax=None, color='blue'):
 
-    """
+    if ax is None:
+        ax = plt.gca()
 
-    n_runs = 30
     mean_diff = []
     std_diff = []
-    for I, J in zip(i, j):
+    for J in j:
         difference = []
         for k in range(n_runs):
-            difference += [mandelbrot_area(s, J) - mandelbrot_area(s, I)]
+            difference += [mandelbrot_area(J, s, type, row_count, col_count,
+                           subsamp) - mandelbrot_area(i, s, type, row_count,
+                           col_count, subsamp)]
         mean_diff += [np.mean(difference)]
         std_diff += [np.std(difference)]
 
     mean_diff = np.array(mean_diff)
     std_diff = np.array(std_diff)
 
-    plt.plot(j, mean_diff, color='blue')
-    plt.fill_between(j, mean_diff - std_diff, mean_diff + std_diff, color='blue',
-                     alpha=0.5)
-    plt.xlim(min(j), max(j))
-    plt.xlabel('j')
-    plt.ylabel(r'$A_{j,s} - A_{i, s}$')
-
-    plt.show()
+    ax.plot(j, mean_diff, color=color)
+    ax.fill_between(j, mean_diff - std_diff, mean_diff+std_diff, color=color,
+                    alpha=0.5)
+    ax.set_xlim(min(j), max(j))
+    ax.set_xscale('log')
+    ax.set_xlabel('j')
+    ax.set_ylabel(r'$A_{j,s} - A_{i, s}$')
 
 
 def s_experiment(type, s, i, row_count, col_count, subsamps):
@@ -235,7 +236,7 @@ if __name__ == '__main__':
     s = 1000
     row_count = s
     col_count = s
-    subsamps  = s
+    subsamps = s
 
     # type = 'Random'
     # area = mandelbrot_area(type, s, i, row_count, col_count, subsamps)
@@ -266,7 +267,8 @@ if __name__ == '__main__':
 
     # i = np.logspace(1, 4, 10, dtype=int)
     # j = np.array([int(0.9*I) for I in i])
-    # plot_diff(i,j)
+    # plot_diff(i,j, s)
+    # plt.show()
 
     # type = 'Random'
     # control_experiment(type, s, i, row_count, col_count, subsamps)
