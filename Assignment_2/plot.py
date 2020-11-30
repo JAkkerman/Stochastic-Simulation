@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import csv
 import numpy as np
+import pandas as pd
 
 def plot_nservers():
     """
@@ -37,9 +38,9 @@ def plot_nservers():
     plt.savefig('hist_servers_together.pdf')
 
 
-def plot_conf_n_servers():
+def plot_conf_n_servers(distr):
 
-    for type in [0,1]:
+    for type in [0]:
 
         fig = plt.subplots(1, 1, figsize=[8,4])
 
@@ -49,7 +50,7 @@ def plot_conf_n_servers():
         stds = [[] for i in range(1,4)]
 
         for n_experiments in all_n_experiments:
-            with open('res_n_servers_'+str(n_experiments)+'_'+str(type)+'_.csv', newline='\n') as csvfile:
+            with open('res_n_servers_'+str(n_experiments)+'_'+str(type)+'_'+distr+'.csv', newline='\n') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
 
                 for i,row in enumerate(reader):
@@ -88,7 +89,7 @@ def plot_conf_n_servers():
         plt.legend(fontsize=12, loc='right')
         # plt.show()
         plt.tight_layout()
-        plt.savefig('CI_nservers_all_'+str(type)+'.pdf')
+        plt.savefig('CI_nservers_all_'+str(type)+'_'+distr+'.pdf')
 
 
 def plot_conf_prior():
@@ -158,11 +159,48 @@ def plot_conf_prior():
     plt.savefig('CI_prior.pdf')
 
 
+def table1():
+    """
+    Creates table 1, showing averages, standard deviations and t-tests
+    """
+    all_n_experiments = np.array([int(i) for i in np.logspace(1,4,10)])
+    data = {'1':[], '2':[], '4':[]}
+
+    for n_experiments in all_n_experiments:
+        with open('res_n_servers_'+str(n_experiments)+'_1_.csv') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+
+            for i,row in enumerate(reader):
+                # print(row)
+                data[row[0]] = [[row[1:]]]
+
+    print(data)
+
+    def avg(list1):
+        print(list1)
+        list1 = [[np.single(i) for i in j if i != ' ' or i!= ''] for j in list1]
+        print(list1)
+        list1 = [round(np.average(j), 3) for  j in list1]
+        print(list1)
+        return 
+
+
+
+    table = {}
+    table['$n_{exp}$'] = list(all_n_experiments)
+
+    table['$\hat{W}_1$'] = avg(data['1'])
+
+    df = pd.DataFrame(table)
+    print(df.to_latex(index=False, escape=False, multicolumn_format='r'))
+
     
 
 if __name__ == '__main__':
     # plot_nservers()
 
-    plot_conf_n_servers()
+    # plot_conf_n_servers('arr_exp')
 
     # plot_conf_prior()
+
+    table1()

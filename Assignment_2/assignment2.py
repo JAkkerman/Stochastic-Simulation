@@ -46,13 +46,15 @@ class Client():
 
                 # print(self.id, 'left at', self.env.now)
 
-def experiment1(n_clients, n_servers, max_time, arr_time, ser_time, sorted):
+def experiment1(n_clients, n_servers, max_time, arr_time, ser_time, sorted, arr_exp):
 
     clients = []
     time_of_arr = 0
     for client in range(n_clients):
         time_of_arr = time_of_arr + np.random.exponential(scale=1/arr_time)
-        time_in_ser = np.random.exponential(scale=1/ser_time)
+        time_in_ser = ser_time
+        if arr_exp:
+            time_in_ser = np.random.exponential(scale=1/ser_time)
         clients += [[time_of_arr, time_in_ser]]
 
     env = simpy.Environment()
@@ -62,7 +64,7 @@ def experiment1(n_clients, n_servers, max_time, arr_time, ser_time, sorted):
         # prior = simpy.resources.resource.PriorityRequest(bcs)
     
     for i,client in enumerate(clients):
-        c = Client(i+1, env, bcs, client[1], client[0], client[1])
+        c = Client(i+1, env, bcs, sorted, client[0], client[1])
         env.process(c.service())
         clients[i] += [c]
 
@@ -77,15 +79,15 @@ def print_to_csv(results, n_experiments, type, prior):
     Prints results to csv
     """
     
-    for i,d in enumerate(results):
+    for i in results:
         string = str(i)+','
+        # print(results)
         for j,c in enumerate(results[i]):
             string += str(c)+','
 
         f = open('res_n_servers_'+str(n_experiments)+'_'+str(type)+'_'+prior+'.csv', "a")
         f.write(string + '\n')
         f.close()
-
 
 
 if __name__ == '__main__':
@@ -96,6 +98,7 @@ if __name__ == '__main__':
     arr_time        = 1
     ser_time        = 0.7
     sorted = False
+    arr_exp = False
 
     # rate of arival lambda
     # lamb = 10
@@ -106,40 +109,42 @@ if __name__ == '__main__':
 
     all_n_experiments = np.array([int(i) for i in np.logspace(1,4,10)])
 
-    # for n_experiments in all_n_experiments:
-    #     print(n_experiments)
-    #     # if n_experiments != 10000:
-
-    #     results = {i:[] for i in [1,2,4]}
-    #     for n_servers in [1,2,4]:
-    #         all_waiting_times = []
-    #         for i in range(n_experiments):
-    #             all_waiting_times += [experiment1(n_clients, n_servers, max_time, arr_time*n_servers, ser_time, sorted)]
-    #         results[n_servers] = [all_waiting_times, [np.average(i) for i in all_waiting_times]]
-
-    #     print(results)
-
-    #     print_to_csv(results, n_experiments, 1, 'non_prior')
-    #     print_to_csv(results, n_experiments, 0, 'non_prior')
-
-        # plot.plot_nservers()
-
-    sorted = True
-    n_servers = 1
-    experiment1(n_clients, n_servers, max_time, arr_time, ser_time, sorted)
+    arr_exp = True
 
     for n_experiments in all_n_experiments:
         print(n_experiments)
+        # if n_experiments != 10000:
 
-        results = []
-        # for n_servers in [1,2,4]:
-        all_waiting_times = []
-        for i in range(n_experiments):
-            all_waiting_times += [experiment1(n_clients, n_servers, max_time, arr_time*n_servers, ser_time, sorted)]
-        results += [all_waiting_times, [np.average(i) for i in all_waiting_times]]
+        results = {i:[] for i in [1,2,4]}
+        for n_servers in [1,2,4]:
+            all_waiting_times = []
+            for i in range(n_experiments):
+                all_waiting_times += [experiment1(n_clients, n_servers, max_time, arr_time*n_servers, ser_time, sorted, arr_exp)]
+            results[n_servers] = [all_waiting_times, [np.average(i) for i in all_waiting_times]]
 
         print(results)
 
-        print_to_csv(results, n_experiments, 1, 'prior')
-        print_to_csv(results, n_experiments, 0, 'prior')
+        # print_to_csv(results, n_experiments, 1, 'arr_exp')
+        print_to_csv(results, n_experiments, 0, 'arr_exp')
+
+        # plot.plot_nservers()
+
+    # sorted = True
+    # n_servers = 1
+    # experiment1(n_clients, n_servers, max_time, arr_time, ser_time, sorted, arr_exp)
+
+    # for n_experiments in all_n_experiments:
+    #     print(n_experiments)
+
+    #     results = []
+    #     # for n_servers in [1,2,4]:
+    #     all_waiting_times = []
+    #     for i in range(n_experiments):
+    #         all_waiting_times += [experiment1(n_clients, n_servers, max_time, arr_time*n_servers, ser_time, sorted, arr_exp)]
+    #     results += [all_waiting_times, [np.average(i) for i in all_waiting_times]]
+
+    #     print(results)
+
+    #     print_to_csv(results, n_experiments, 1, 'prior')
+    #     print_to_csv(results, n_experiments, 0, 'prior')
 
