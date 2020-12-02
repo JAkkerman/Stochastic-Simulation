@@ -167,8 +167,59 @@ def plot_conf_prior():
     plt.ylabel('confidence interval', fontsize=14)
     plt.legend(fontsize=12, loc='right')
     plt.tight_layout()
-    plt.show()
-    # plt.savefig('CI_prior.pdf')
+    # plt.show()
+    plt.savefig('CI_prior.pdf')
+
+
+def plot_conf_exp_det():
+    """
+    Plots histogram for 1, 2 and 4 servers
+    """
+
+    fig, ax = plt.subplots(1, 3, figsize=[10,4])
+
+    n_servers = 1
+    n_clients = 1000
+    # ser_type  = 'exp'
+    n_exp     = 1000
+
+    # open data
+    for ser_type in ['exp', 'det']:
+        with open('Data/'+str(n_clients)+'_cl_'+str(n_exp)+'_exper_'+ser_type+'_ser.csv', newline='\n') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+
+            for i,row in enumerate(reader):
+                row = [np.single(i) for i in row if i != '']
+
+                c='blue'
+                if ser_type == 'det':
+                    c = 'orange'
+
+                serv = str(i+1)
+                if i == 2:
+                    serv = '4'
+
+                # plot average data in a histogram
+                ax[i].hist(row, label=ser_type, alpha=0.5, bins=50, color=c)
+                ax[i].title.set_text(serv+' servers')
+
+    ax[0].set_ylabel('density', fontsize=12)
+    ax[0].set_xlabel('$\overline{W}$', fontsize=12)
+    ax[0].legend()
+    ax[1].set_ylabel('density', fontsize=12)
+    ax[1].set_xlabel('$\overline{W}$', fontsize=12)
+    ax[1].legend()
+    ax[2].set_ylabel('density', fontsize=12)
+    ax[2].set_xlabel('$\overline{W}$', fontsize=12)
+    ax[2].legend()
+
+    # plt.xlabel('average waiting time', fontsize=14)
+    # plt.xlim(0,7)
+    # plt.ylabel('number of experiments', fontsize=14)
+    # plt.legend(fontsize=14)
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig('hist_det.pdf')
 
 
 def table1():
@@ -252,6 +303,8 @@ if __name__ == '__main__':
 
     # plot_conf_n_servers()
 
-    plot_conf_prior()
+    # plot_conf_prior()
 
     # table1()
+
+    plot_conf_exp_det()
