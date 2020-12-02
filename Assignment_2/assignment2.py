@@ -47,19 +47,27 @@ class Client():
 
                 # print(self.id, 'left at', self.env.now)
 
-def run_queue(n_clients, n_servers, max_time, lamb, mu, priority, ser_exp):
+def run_queue(n_clients, n_servers, max_time, lamb, mu, priority, ser_exp, serv_dist='1M'):
     """
     Runs one queue simulation
     """
 
     clients = []
     time_of_arr = 0
+    M2 = [0 for i in range(int(0.75*n_clients))] + [1 for i in range(n_clients-int(0.75*n_clients))]
     for client in range(n_clients):
-        # sample arrival time and service time
-        time_of_arr = time_of_arr + np.random.exponential(scale=1/lamb)
-        time_in_ser = 1/mu
-        if ser_exp:
-            time_in_ser = np.random.exponential(scale=1/mu)
+        time_of_arr += np.random.exponential(scale=1/lamb)
+        if serv_dist=='1M': time_in_ser = np.random.exponential(scale=1/mu)
+
+        # 75% in avg = 1, 25% in avg = 5
+        elif serv_dist=='2M':
+            if np.random.choice(M2) == 0:
+                time_in_ser = np.random.exponential(scale=1)
+                M2.remove(0)
+            else: 
+                time_in_ser = np.random.exponential(scale=1/5)
+                M2.remove(1)
+
         clients += [[time_of_arr, time_in_ser]]
 
     # initiate environment and resource(s) (=server(s))
