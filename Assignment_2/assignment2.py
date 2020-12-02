@@ -36,7 +36,7 @@ class Client():
 
                 # print(self.id, 'left at', self.env.now)
         else:
-            with self.bcs.request(priority=self.prior) as req:
+            with self.bcs.request(priority=self.time_in_service) as req:
                 yield req
 
                 self.waiting_time = self.env.now - self.time_of_arr
@@ -48,21 +48,29 @@ class Client():
                 # print(self.id, 'left at', self.env.now)
 
 def run_queue(n_clients, n_servers, max_time, lamb, mu, priority, ser_exp):
+    """
+    Runs one queue simulation
+    """
 
     clients = []
     time_of_arr = 0
     for client in range(n_clients):
+        # sample arrival time and service time
         time_of_arr = time_of_arr + np.random.exponential(scale=1/lamb)
-        time_in_ser = mu
+        time_in_ser = 1/mu
         if ser_exp:
             time_in_ser = np.random.exponential(scale=1/mu)
         clients += [[time_of_arr, time_in_ser]]
 
+    # initiate environment and resource(s) (=server(s))
     env = simpy.Environment()
     bcs = simpy.Resource(env, capacity=n_servers)
+
+    # chet for priority, then change resource
     if priority:
         bcs = simpy.PriorityResource(env)
     
+    # run experiment for all clients
     for i,client in enumerate(clients):
         c = Client(i+1, env, bcs, priority, client[0], client[1])
         env.process(c.service())
@@ -118,8 +126,6 @@ def rho_experiment(n_servers=1, max_time=1000, priority=False, ser_exp=True):
 
             rho_results[n_clients] += [sign]
 
-    
-
     fig = plt.subplots(figsize=(7,4))
     for m in rho_results:
         plt.plot(rhos, rho_results[m], label='$m$='+str(m))
@@ -156,15 +162,17 @@ def rho_hist():
             col = 'blue'
             bins = 100
 
+        # run experiment 1000 times
         for exp in range(1000):
                 all_waiting_times += [run_queue(n_clients, n_servers, max_time, lamb*n_servers, mu, priority, ser_exp)]
 
         for i,c in enumerate(all_waiting_times):
                 all_waiting_times[i] = [x for x in c if x is not None]
 
+        # compute averages
         all_avg = [np.average(l) for l in all_waiting_times]
 
-        print(all_avg)
+        # plot histograms
         plt.hist(all_avg, label=r'$\rho=$'+str(rho), bins=bins, color=col, alpha=0.3)
         expected = rho/((1-rho)*mu)
         plt.arrow(expected, 0, 0, 500, head_width=4, linestyle='dotted', color=col)
@@ -184,16 +192,22 @@ def experiment1(n_clients, max_time, lamb, mu, all_n_exp, priority, ser_exp, ser
 
     for n_exp in all_n_exp:
         results = {i:[] for i in [1,2,4]}
+        # run experiment for different amounts of servers
         for n_servers in [1,2,4]:
             all_waiting_times = []
+
+            # run experiment for n_exp times, save waiting times
             for i in range(n_exp):
                 all_waiting_times += [run_queue(n_clients, n_servers, max_time, lamb*n_servers, mu, priority, ser_exp)]
 
+            # filter out None values
             for i,c in enumerate(all_waiting_times):
                 all_waiting_times[i] = [x for x in c if x is not None]
 
+            # compute averages
             results[n_servers] = [np.average(i) for i in all_waiting_times]
 
+        # print results to csv
         file_name = 'Data/'+str(n_clients)+'_cl_'+str(n_exp)+'_exper_'+ser_type+'_ser.csv'
         print_to_csv(results, file_name)
 
@@ -207,16 +221,19 @@ def experiment2(n_clients, n_servers, max_time, all_n_exp, lamb, mu, priority, s
         results = {1:[]}
         all_waiting_times = []
 
+        # run experiment for n_exp times, save waiting times
         for i in range(n_exp):
             all_waiting_times += [run_queue(n_clients, n_servers, max_time, lamb*n_servers, mu, priority, ser_exp)]
 
+        # filter out None values
         for i,c in enumerate(all_waiting_times):
                 all_waiting_times[i] = [x for x in c if x is not None]
 
+        # compute averages
         results[1] = [np.average(i) for i in all_waiting_times]
 
+        # print results to csv
         file_name = 'Data/'+str(n_clients)+'_cl_'+str(n_exp)+'_exper_'+ser_type+'_ser_prior.csv'
-
         print_to_csv(results, file_name)
 
 
@@ -240,12 +257,12 @@ if __name__ == '__main__':
     # rho_hist()
 
     # M/M/n experiment for n = 1, 2 and 4.
-    experiment1(n_clients, max_time, lamb, mu, all_n_exp, priority, ser_exp, 'exp')
+    # experiment1(n_clients, max_time, lamb, mu, all_n_exp, priority, ser_exp, 'exp')
 
     # M/M/1 experiment with sorting
     priority  = True
     n_servers = 1
-    experiment2(n_clients, n_servers, max_time, all_n_exp, lamb, mu, priority, ser_exp, 'exp')
+    # experiment2(n_clients, n_servers, max_time, all_n_exp, lamb, mu, priority, ser_exp, 'exp')
 
     # experiment for M/D/1 (deterministic service time)
     priority = False

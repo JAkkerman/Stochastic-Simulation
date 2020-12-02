@@ -45,6 +45,9 @@ def plot_nservers():
 
 
 def plot_conf_n_servers():
+    """
+    Plots the confidence intervals for n servers
+    """
 
     fig = plt.subplots(1, 1, figsize=[8,4])
 
@@ -184,6 +187,9 @@ def plot_conf_exp_det():
     n_exp     = 1000
 
     # open data
+
+    ttest = {'1':[], '2':[], '4':[]}
+
     for ser_type in ['exp', 'det']:
         with open('Data/'+str(n_clients)+'_cl_'+str(n_exp)+'_exper_'+ser_type+'_ser.csv', newline='\n') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
@@ -198,6 +204,8 @@ def plot_conf_exp_det():
                 serv = str(i+1)
                 if i == 2:
                     serv = '4'
+
+                ttest[serv] += [row]
 
                 # plot average data in a histogram
                 ax[i].hist(row, label=ser_type, alpha=0.5, bins=50, color=c)
@@ -219,7 +227,16 @@ def plot_conf_exp_det():
     # plt.legend(fontsize=14)
     plt.tight_layout()
     # plt.show()
-    plt.savefig('hist_det.pdf')
+    # plt.savefig('hist_det.pdf')
+
+    # print(ttest)
+
+    # Perform t-tests
+    # for i in ttest:
+    #     print(i)
+    #     res = stats.ttest_ind(ttest[i][0], ttest[i][1], equal_var=False)
+    #     print(res)
+
 
 
 def table1():
