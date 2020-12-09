@@ -30,7 +30,7 @@ def integrate(param,t,x,y):
     b = param[1]
     g = param[2]
     d = param[3]
-    time = np.arange(0, len(t))
+    time = np.linspace(0, 20, 100)
 
     def eq(begin_pop,t,a,b,g,d):
         x,y = begin_pop
@@ -165,4 +165,4 @@ if __name__ == "__main__":
     #     error_x, error_y = means_sq(x,y,x_val,y_val)
     #     print(error_x, error_y)
 
-    params = hillclimber(t,x,y, plot_fit=True, n_runs=10, steps=4000)
+    params = hillclimber(t,x,y, plot_fit=True, n_runs=4, steps=2000)
