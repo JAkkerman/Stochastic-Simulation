@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
+import random
 import csv
 
 
@@ -75,8 +76,7 @@ def hillclimber(t,x,y, method='mean squared', plot_error=False, plot_fit=False, 
     n_runs: int, how often the algorithm starts again from a random point
     ''' 
 
-    # dictionary with key, value: run, (errors, params)
-
+    # dictionary with key, value = run, (errors, params)
     output = {}
 
     for run in range(n_runs):
@@ -134,7 +134,7 @@ def hillclimber(t,x,y, method='mean squared', plot_error=False, plot_fit=False, 
 
     return best_param
 
-def SA(t, x, y, p0, error='mean squared'):
+def SA(t, x, y, method='mean squared'):
     '''
     Simulated annealing algorithm
     t, x, y: time, predator, prey data
@@ -143,13 +143,51 @@ def SA(t, x, y, p0, error='mean squared'):
     '''
 
     # initializations
-    T0 = 100   # starting temperature
-    dT = 0.1   # step size
+    dT = 0.01   # step size
     Tf = 0.1   # final temperature
-    Tc = np.random.uniform(1, 100)   # current temperature
+    Tc = 500   # current temperature
+
+    param = np.random.uniform(0.1, 3, size=4)
+    x_current, y_current = integrate(param, t, x, y)
+    error_current = error(x, y, x_current, y_current, method=method)
 
     while Tc > Tf:
-        pass
+        # choose new parameters
+        noise = np.array([np.random.normal(0, 0.1), 0, 0, 0])
+        np.random.shuffle(noise)
+        param_neighbour = np.abs(np.array(param) + noise)
+        x_neighbour, y_neighbour = integrate(param_neighbour, t, x, y)
+        error_neighbour = error(x, y, x_neighbour, y_neighbour, method=method)
+
+        diff = error_current - error_neighbour
+
+        if error_neighbour < error_current:
+            error_current = error_neighbour
+            param = param_neighbour
+
+        else:
+            if np.random.uniform(0, 1) < np.exp(diff / Tc):
+                error_current = error_neighbour
+                param = param_neighbour
+
+        Tc -= dT
+
+    x_current, y_current = integrate(param, t, x, y)
+
+    fig , ax = plt.subplots(1,2, figsize=(7, 4))
+    ax[0].plot(t, x_current, label='est')
+    ax[0].plot(t, x, label='real')
+    ax[0].set_title('predator')
+    ax[0].legend()
+    ax[1].plot(t, y_current, label='est')
+    ax[1].plot(t,y, label='real')
+    ax[1].set_title('prey')
+    ax[1].legend()
+
+    plt.show()
+    
+
+        
 
 
 
@@ -165,4 +203,5 @@ if __name__ == "__main__":
     #     error_x, error_y = means_sq(x,y,x_val,y_val)
     #     print(error_x, error_y)
 
-    params = hillclimber(t,x,y, plot_fit=True, n_runs=4, steps=2000)
+    # params = hillclimber(t,x,y, plot_fit=True, n_runs=4, steps=2000)
+    SA(t, x, y)
