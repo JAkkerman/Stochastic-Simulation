@@ -143,9 +143,9 @@ def SA(t, x, y, method='mean squared'):
     '''
 
     # initializations
-    dT = 0.01   # step size
-    Tf = 0.1   # final temperature
-    Tc = 500   # current temperature
+    dT = 10e-5   # step size
+    Tf = 10e-5   # final temperature
+    Tc = 1   # current temperature
 
     param = np.random.uniform(0.1, 3, size=4)
     x_current, y_current = integrate(param, t, x, y)
@@ -170,6 +170,8 @@ def SA(t, x, y, method='mean squared'):
                 error_current = error_neighbour
                 param = param_neighbour
 
+        # print(Tc)
+
         Tc -= dT
 
     x_current, y_current = integrate(param, t, x, y)
@@ -187,15 +189,12 @@ def SA(t, x, y, method='mean squared'):
     plt.show()
     
 
-        
-
-
 
 if __name__ == "__main__":
 
     error_type = 'means_sq'
 
-    t,x,y, = open_data()
+    t,x,y = open_data()
     # param=[0.3,0.3,0.3,0.3]
     # x_val, y_val = integrate(param,t,x,y)
 
@@ -204,4 +203,4 @@ if __name__ == "__main__":
     #     print(error_x, error_y)
 
     # params = hillclimber(t,x,y, plot_fit=True, n_runs=4, steps=2000)
-    SA(t, x, y)
+    SA(t, x, y, method='absolute')
