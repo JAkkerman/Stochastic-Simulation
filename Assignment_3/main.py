@@ -27,24 +27,24 @@ def open_data():
     return t,x,y
 
 
-def save_to_csv(res):
-    """
-    Saves results to csv
-    """
-    print(res)
-    data = {}
-    lastsols = [list(exp[0][0]) for exp in res]
-    bestsols = [list(exp[1][0]) for exp in res]
-    errors   = [list(exp[2]) for exp in res]
+# def save_to_csv(res):
+#     """
+#     Saves results to csv
+#     """
+#     print(res)
+#     data = {}
+#     lastsols = [list(exp[0][0]) for exp in res]
+#     bestsols = [list(exp[1][0]) for exp in res]
+#     errors   = [list(exp[2]) for exp in res]
 
-    data = {'lastsols': lastsols, 'bestsols': bestsols, 'errors': errors}
+#     data = {'lastsols': lastsols, 'bestsols': bestsols, 'errors': errors}
 
-    # for i,exp in enumerate(res):
-    #     data = {'last': last_sol[0], 'best': best_sol[0], 'errors': errors}
-    #     data[i] = []
+#     # for i,exp in enumerate(res):
+#     #     data = {'last': last_sol[0], 'best': best_sol[0], 'errors': errors}
+#     #     data[i] = []
     
-    df = pd.DataFrame(data)
-    df.to_csv(path_or_buf='SA_exp_fulldataset.csv')
+#     df = pd.DataFrame(data)
+#     df.to_csv(path_or_buf='SA_exp_fulldataset.csv')
 
 
 def print_to_csv(results, filename):
@@ -86,15 +86,16 @@ def integrate(param, t, x0, y0, x_keys, y_keys):
 
     x_val, y_val = numint.T
 
-    if x_keys.any():
-        x_val = [x_val[i] for i in x_keys]
-    if y_keys.any():
-        y_val = [y_val[i] for i in y_keys]
+    # if x_keys.any():
+    # x_val = [x_val[int(i)] for i in x_keys]
+    # if y_keys.any():
+
+    # y_val = [y_val[int(i)] for i in y_keys]
 
     return x_val, y_val
 
 
-def error(x, y, x_val, y_val, x_keys, y_keys, error_method='mean squared'):
+def error(x_prime, y_prime, x_val, y_val, x_keys, y_keys, error_method='mean squared'):
     '''
     Computes the loss between data and predictions
     x, y : data
@@ -105,6 +106,9 @@ def error(x, y, x_val, y_val, x_keys, y_keys, error_method='mean squared'):
     #     x = [x[i] for i in x_keys]
     # if y_keys.any():
     #     y = [y[i] for i in y_keys]
+
+    x_val = [x_val[int(i)] for i in x_keys]
+    y_val = [y_val[int(i)] for i in y_keys]
 
     if error_method == 'mean squared':
         error_x = np.average([(np.array(x)-np.array(x_val))**2])
@@ -199,7 +203,7 @@ def sigmoid_linmap(step, steps):
     return S(linmap)
 
 
-def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=False, x_keys=np.array([False]), y_keys=np.array([False])):
+def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=False, x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100)):
     '''
     Simulated annealing algorithm
     t, x, y: time, predator, prey data
@@ -210,7 +214,8 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     all_errors = []
 
     # initializations
-    steps = 3*10e3
+    steps = 10e3
+    # steps = 10
     # steps = 100
     Tc = 1        # current temperature
     dT = Tc/steps # step size, scaled to amount of steps
@@ -232,10 +237,11 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     param = np.random.uniform(0, 2, size=4)
     x_current, y_current = integrate(param, t, x0, y0, x_keys, y_keys)
 
-    if x_keys.any():
-        x = [x[i] for i in x_keys]
-    if y_keys.any():
-        y = [y[i] for i in y_keys]
+    # if x_keys.any():
+    x_prime = [x[int(i)] for i in x_keys]
+    
+    # if y_keys.any():
+    y_prime = [y[int(i)] for i in y_keys]
 
     error_current = error(x, y, x_current, y_current, x_keys, y_keys, error_method=error_method)
     all_errors += [error_current]
@@ -290,9 +296,9 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     print('final ratio a/b: ', round(param[0]/param[1],2), ',final ratio g/d:', round(param[2]/param[3],2))
     print('best ratio a/b: ', round(best_sol[0][0]/best_sol[0][1],2), ',best ratio g/d:', round(best_sol[0][2]/best_sol[0][3],2))
 
-    # x_current, y_current = integrate(param, t, x, y, x_keys, y_keys)
-    # x_bestsol, y_bestsol = integrate(best_sol[0], t, x, y, x_keys, y_keys)
-
+    # print(x)
+    # x_current, y_current = integrate(param, t, x0, y0, x_keys, y_keys)
+    x_bestsol, y_bestsol = integrate(best_sol[0], t, x0, y0, x_keys, y_keys)
 
     results = []
     results += list(param)
@@ -303,27 +309,27 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     if reducerand:
         filename = 'SA_'+cooling+'_'+error_method+'_reducerand_'+reducerand+'.csv'
 
-    print_to_csv(results, filename)
+    # print_to_csv(results, filename)
 
-    # fig , ax = plt.subplots(1,2, figsize=(7, 4))
+    fig , ax = plt.subplots(1,2, figsize=(7, 4))
     # ax[0].plot(t, x_current, label='last est')
-    # ax[0].plot(t, x_bestsol, label='best est')
-    # ax[0].plot(t, x, label='real')
-    # ax[0].set_title('predator')
-    # ax[0].legend()
+    ax[0].plot(t, x_bestsol, label='best est')
+    ax[0].plot(t, x, label='real')
+    ax[0].set_title('predator')
+    ax[0].legend()
     # ax[1].plot(t, y_current, label='last est')
-    # ax[1].plot(t, y_bestsol, label='best est')
-    # ax[1].plot(t,y, label='real')
-    # ax[1].set_title('prey')
-    # ax[1].legend()
+    ax[1].plot(t, y_bestsol, label='best est')
+    ax[1].plot(t,y, label='real')
+    ax[1].set_title('prey')
+    ax[1].legend()
 
-    # plt.show()
+    plt.show()
 
-    # plt.plot(np.arange(0, len(all_errors), 1), all_errors)
-    # plt.show()
+    plt.plot(np.arange(0, len(all_errors), 1), all_errors)
+    plt.show()
 
-    # plt.plot(range(len(all_Tc)), all_Tc)
-    # plt.show()
+    plt.plot(range(len(all_Tc)), all_Tc)
+    plt.show()
 
     return [param, error_current], best_sol, all_errors
 
@@ -332,12 +338,18 @@ def reduce_random(t,x,y):
     """
     Randomly reduces 
     """
-    n_experiments = 10
+    n_experiments = 1
 
     # reduce x
-    for perc in [0.8, 0.6, 0.4, 0.2, 0]:
+    # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
+    for perc in [0]:
         for i in range(n_experiments):
-            x_keys = np.random.choice(range(len(x)),size=int(perc*len(x)))
+            x_keys = list(np.random.choice(range(len(x)),size=int(perc*len(x))))
+
+            if not 0 in x_keys:
+                x_keys += [0]
+
+            x_keys = np.array(x_keys)
             SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='x', x_keys=x_keys)
 
     # # reduce y
