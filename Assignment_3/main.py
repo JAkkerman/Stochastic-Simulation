@@ -271,6 +271,7 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     # param = list(np.random.uniform(0, 1, size=2)) + list(np.random.uniform(2, 4, size=2))
     param = np.random.uniform(0, 2, size=4)
     x_current, y_current = integrate(param, t, x0, y0, x_keys, y_keys)
+    
 
     # if x_keys.any():
     x_prime = [x[int(i)] for i in x_keys]
@@ -343,7 +344,7 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
 
     filename = 'SA_'+cooling+'_'+error_method+'.csv'
     if reducerand:
-        filename = 'SA_'+cooling+'_'+error_method+'_reducerand_'+reducerand+'.csv'
+        filename = 'SA_'+cooling+'_'+error_method+'_removed_data_'+reducerand+'.csv'
 
     print_to_csv(results, filename)
 
@@ -403,75 +404,77 @@ def reduce_random(t,x,y):
             SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
 
 
-def remove_data():
-    t, x, y = open_data()
-    x_copy = copy.copy(x)
-    y_copy = copy.copy(y)
+def remove_data(n_remove):
 
-    mid_x = np.mean(x)
-    mid_y = np.mean(y)
-    tbx_removed = []
-    tby_removed = []
+    for j in range(30):
+        t, x, y = open_data()
+        x_copy = copy.copy(x)
+        y_copy = copy.copy(y)
 
-    for i in range(10):
-        close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-mid_x))
-        tb_removed += [close_x]
-        del x_copy[close_x]
-    
-        close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-mid_y))
-        tby_removed += [close_y]
-        del y_copy[close_y]
+        mid_x = np.mean(x)
+        mid_y = np.mean(y)
+        tbx_removed = []
+        tby_removed = []
 
-    x_keys = [x.index(ele) for ele in x_copy].sort()
-    y_keys = [y.index(ele) for ele in y_copy].sort()
+        for i in range(n_remove):
+            close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-mid_x))
+            tbx_removed += [close_x]
+            del x_copy[close_x]
+        
+            close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-mid_y))
+            tby_removed += [close_y]
+            del y_copy[close_y]
 
-    SA(t, x, y, x_keys=x_keys, y_keys=y_keys)
+        x_keys = np.sort([x.index(ele) for ele in x_copy])
+        y_keys = np.sort([y.index(ele) for ele in y_copy])
 
-    
-    x_copy = copy.copy(x)
-    y_copy = copy.copy(y)
+        SA(t, x, y, 1, x_keys=x_keys, y_keys=y_keys, reducerand=f'removemean_{n_remove}')
 
-    max_x = max(x)
-    max_y = max(y)
-    tbx_removed = []
-    tby_removed = []
+        
+        x_copy = copy.copy(x)
+        y_copy = copy.copy(y)
 
-    for i in range(10):
-        close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-max_x))
-        tb_removed += [close_x]
-        del x_copy[close_x]
-    
-        close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-max_y))
-        tby_removed += [close_y]
-        del y_copy[close_y]
+        max_x = max(x)
+        max_y = max(y)
+        tbx_removed = []
+        tby_removed = []
 
-    x_keys = [x.index(ele) for ele in x_copy].sort()
-    y_keys = [y.index(ele) for ele in y_copy].sort()
+        for i in range(n_remove):
+            close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-max_x))
+            tbx_removed += [close_x]
+            del x_copy[close_x]
+        
+            close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-max_y))
+            tby_removed += [close_y]
+            del y_copy[close_y]
 
-    SA(t, x, y, x_keys=x_keys, y_keys=y_keys)
+        x_keys = np.sort([x.index(ele) for ele in x_copy])
+        y_keys = np.sort([y.index(ele) for ele in y_copy])
+
+        SA(t, x, y, 1, x_keys=x_keys, y_keys=y_keys, reducerand=f'removemax_{n_remove}')
 
 
-    x_copy = copy.copy(x)
-    y_copy = copy.copy(y)
+        x_copy = copy.copy(x)
+        y_copy = copy.copy(y)
 
-    min_x = min(x)
-    min_y = min(y)
-    tbx_removed = []
-    tby_removed = []
+        min_x = min(x)
+        min_y = min(y)
+        tbx_removed = []
+        tby_removed = []
 
-    for i in range(10):
-        close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-min_x))
-        tb_removed += [close_x]
-        del x_copy[close_x]
-    
-        close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-min_y))
-        tby_removed += [close_y]
-        del y_copy[close_y]
+        for i in range(n_remove):
+            close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-min_x))
+            tbx_removed += [close_x]
+            del x_copy[close_x]
+        
+            close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-min_y))
+            tby_removed += [close_y]
+            del y_copy[close_y]
 
-    x_keys = [x.index(ele) for ele in x_copy].sort()
-    y_keys = [y.index(ele) for ele in y_copy].sort()
+        x_keys = np.sort([x.index(ele) for ele in x_copy])
+        y_keys = np.sort([y.index(ele) for ele in y_copy])
 
-    SA(t, x, y, x_keys=x_keys, y_keys=y_keys)
+        SA(t, x, y, 1, x_keys=x_keys, y_keys=y_keys, reducerand=f'removemin_{n_remove}')
 
 
 
@@ -496,5 +499,6 @@ if __name__ == "__main__":
         # res += [[last_sol, best_sol, errors]]
     # save_to_csv(res)
 
-    reduce_random(t,x,y)
-    # remove_data()
+    # reduce_random(t,x,y)
+    for n in [10, 20]:
+        remove_data(n)
