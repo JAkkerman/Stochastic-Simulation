@@ -65,7 +65,7 @@ def print_to_csv(results, filename):
     #     f.close()
 
 
-def integrate(param,t,x,y):
+def integrate(param, t, x ,y, x_keys, y_keys):
     a = param[0]
     b = param[1]
     g = param[2]
@@ -76,8 +76,6 @@ def integrate(param,t,x,y):
         x,y = begin_pop
         dxdt = a*x - b*x*y
         dydt = d*x*y - g*y
-        # dxdt = d*x*y - g*x
-        # dydt = a*y - b*x*y
         return dxdt, dydt
 
     begin_pop = x[0],y[0]
@@ -85,16 +83,26 @@ def integrate(param,t,x,y):
 
     x_val, y_val = numint.T
 
+    if x_keys.any():
+        x_val = [x_val[i] for i in x_keys]
+    if y_keys.any():
+        y_val = [y_val[i] for i in y_keys]
+
     return x_val, y_val
 
 
-def error(x, y, x_val, y_val, error_method='mean squared'):
+def error(x, y, x_val, y_val, x_keys, y_keys, error_method='mean squared'):
     '''
     Computes the loss between data and predictions
     x, y : data
     x_val, y_val: predictions
     method: which loss function to use 'mean squared' or 'absolute'
     '''
+    if x_keys.any():
+        x = [x[i] for i in x_keys]
+    if y_keys.any():
+        y = [y[i] for i in y_keys]
+
     if error_method == 'mean squared':
         error_x = np.average([(np.array(x)-np.array(x_val))**2])
         error_y = np.average([(np.array(y)-np.array(y_val))**2])
@@ -188,7 +196,7 @@ def sigmoid_linmap(step, steps):
     return S(linmap)
 
 
-def SA(t, x, y, run, error_method='mean squared', cooling='linear'):
+def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=False, x_keys=np.array([False]), y_keys=np.array([False])):
     '''
     Simulated annealing algorithm
     t, x, y: time, predator, prey data
@@ -215,8 +223,8 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear'):
     count = 1
     # param = list(np.random.uniform(0, 1, size=2)) + list(np.random.uniform(2, 4, size=2))
     param = np.random.uniform(0, 2, size=4)
-    x_current, y_current = integrate(param, t, x, y)
-    error_current = error(x, y, x_current, y_current, error_method=error_method)
+    x_current, y_current = integrate(param, t, x, y, x_keys, y_keys)
+    error_current = error(x, y, x_current, y_current, x_keys, y_keys, error_method=error_method)
     all_errors += [error_current]
     best_sol = [param, error_current]
 
@@ -228,8 +236,8 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear'):
         np.random.shuffle(noise)
         # print(noise)
         param_neighbour = np.abs(np.array(param) + noise)
-        x_neighbour, y_neighbour = integrate(param_neighbour, t, x, y)
-        error_neighbour = error(x, y, x_neighbour, y_neighbour, error_method=error_method)
+        x_neighbour, y_neighbour = integrate(param_neighbour, t, x, y, x_keys, y_keys)
+        error_neighbour = error(x, y, x_neighbour, y_neighbour, x_keys, y_keys, error_method=error_method)
 
         diff = error_current - error_neighbour
 
@@ -269,8 +277,8 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear'):
     print('final ratio a/b: ', round(param[0]/param[1],2), ',final ratio g/d:', round(param[2]/param[3],2))
     print('best ratio a/b: ', round(best_sol[0][0]/best_sol[0][1],2), ',best ratio g/d:', round(best_sol[0][2]/best_sol[0][3],2))
 
-    x_current, y_current = integrate(param, t, x, y)
-    x_bestsol, y_bestsol = integrate(best_sol[0], t, x, y)
+    # x_current, y_current = integrate(param, t, x, y, x_keys, y_keys)
+    # x_bestsol, y_bestsol = integrate(best_sol[0], t, x, y, x_keys, y_keys)
 
 
     results = []
@@ -279,6 +287,8 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear'):
     results += all_errors
 
     filename = 'SA_'+cooling+'_'+error_method+'.csv'
+    if reducerand:
+        filename = 'SA_'+cooling+'_'+error_method+'_reducerand_'+reducerand+'.csv'
 
     print_to_csv(results, filename)
 
@@ -303,7 +313,27 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear'):
     # plt.show()
 
     return [param, error_current], best_sol, all_errors
-    
+
+
+def reduce_random(t,x,y):
+    """
+    Randomly reduces 
+    """
+    n_experiments = 10
+
+    # reduce x
+    for perc in [0.8, 0.6, 0.4, 0.2, 0]:
+        x_keys = np.random.choice(range(len(x)),size=int(perc*len(x)))
+
+        for i in range(n_experiments):
+            SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='x', x_keys=x_keys)
+
+    # # reduce y
+    # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
+    #     y_keys = np.random.choice(range(len(y)),size=int(perc*len(y)))
+
+    #     for i in range(n_experiments):
+    #         SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
 
 
 if __name__ == "__main__":
@@ -312,7 +342,7 @@ if __name__ == "__main__":
 
     t,x,y = open_data()
 
-    n_experiments = 30
+    n_experiments = 15
     # param=[0.3,0.3,0.3,0.3]
     # x_val, y_val = integrate(param,t,x,y)
 
@@ -322,7 +352,9 @@ if __name__ == "__main__":
 
     # params = hillclimber(t,x,y, plot_fit=True, n_runs=4, steps=2000)
     # res = []
-    for i in range(n_experiments):
-        last_sol, best_sol, errors = SA(t, x, y, i, error_method='mean squared', cooling='linear')
+    # for i in range(n_experiments):
+        # last_sol, best_sol, errors = SA(t, x, y, i, error_method='absolute', cooling='linear')
         # res += [[last_sol, best_sol, errors]]
     # save_to_csv(res)
+
+    reduce_random(t,x,y)
