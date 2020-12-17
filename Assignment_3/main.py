@@ -475,9 +475,6 @@ def remove_data():
 
 
 
-
-
-
 if __name__ == "__main__":
 
     error_type = 'means_sq'
