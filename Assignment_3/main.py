@@ -4,6 +4,7 @@ from scipy.integrate import odeint
 import random
 import csv
 import pandas as pd
+import copy
 
 
 
@@ -202,6 +203,40 @@ def sigmoid_linmap(step, steps):
 
     return S(linmap)
 
+def calc_T0(n_samp, T, error_method='mean squared'):
+    # add al neighbours to a set
+    S = [np.random.uniform(0, 2, size=4)]
+    for i in range(n_samp):
+        noise = np.array([np.random.normal(0, 0.1), 0, 0, 0])
+        np.random.shuffle(noise)
+        S.append(np.abs(np.array(S[-1]) + noise))
+
+    t, x, y = open_data()
+    epsilon = 1e-3
+    p = 1.5
+    chi = []
+    x_val, y_val = integrate(S[0], t, x, y)
+
+    for i in range(1000):
+        E_max = []
+        E_min = []
+        for j in range(len(S)-1):
+            # before transition
+            x_val, y_val = integrate(S[j], t, x, y)
+            E_min += [error(x, y, x_val, y_val, error_method=error_method)]
+
+            # after transition
+            x_val, y_val = integrate(S[j+1], t, x, y)
+            E_max += [error(x, y, x_val, y_val, error_method=error_method)]
+
+        chi += [np.sum(np.exp(-np.array(E_max)/T)) / np.sum(np.exp(-np.array(E_min)/T))]
+
+        if np.abs(chi[-1] - chi[0]) <= epsilon:
+            return T
+
+        else:
+            T = T * (np.log(chi[-1]) / np.log(chi[0])) ** (1/p)
+
 
 def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=False, x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100)):
     '''
@@ -340,23 +375,92 @@ def reduce_random(t,x,y):
     """
     n_experiments = 1
 
-    # reduce x
-    # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
-    for perc in [0]:
-        for i in range(n_experiments):
-            x_keys = list(np.random.choice(range(len(x)),size=int(perc*len(x))))
-
-            if not 0 in x_keys:
-                x_keys += [0]
-
-            x_keys = np.array(x_keys)
-            SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='x', x_keys=x_keys)
-
-    # # reduce y
+    # # reduce x
     # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
     #     for i in range(n_experiments):
-    #         y_keys = np.random.choice(range(len(y)),size=int(perc*len(y)))
-    #         SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
+    #         x_keys = np.random.choice(range(len(x)),size=int(perc*len(x)))
+    #         SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='x', x_keys=x_keys)
+
+    # reduce y
+    for perc in [0.8, 0.6, 0.4, 0.2, 0]:
+        for i in range(n_experiments):
+            y_keys = np.random.choice(range(len(y)),size=int(perc*len(y)))
+            SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
+
+
+def remove_data():
+    t, x, y = open_data()
+    x_copy = copy.copy(x)
+    y_copy = copy.copy(y)
+
+    mid_x = np.mean(x)
+    mid_y = np.mean(y)
+    tbx_removed = []
+    tby_removed = []
+
+    for i in range(10):
+        close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-mid_x))
+        tb_removed += [close_x]
+        del x_copy[close_x]
+    
+        close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-mid_y))
+        tby_removed += [close_y]
+        del y_copy[close_y]
+
+    x_keys = [x.index(ele) for ele in x_copy].sort()
+    y_keys = [y.index(ele) for ele in y_copy].sort()
+
+    SA(t, x, y, x_keys=x_keys, y_keys=y_keys)
+
+    
+    x_copy = copy.copy(x)
+    y_copy = copy.copy(y)
+
+    max_x = max(x)
+    max_y = max(y)
+    tbx_removed = []
+    tby_removed = []
+
+    for i in range(10):
+        close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-max_x))
+        tb_removed += [close_x]
+        del x_copy[close_x]
+    
+        close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-max_y))
+        tby_removed += [close_y]
+        del y_copy[close_y]
+
+    x_keys = [x.index(ele) for ele in x_copy].sort()
+    y_keys = [y.index(ele) for ele in y_copy].sort()
+
+    SA(t, x, y, x_keys=x_keys, y_keys=y_keys)
+
+
+    x_copy = copy.copy(x)
+    y_copy = copy.copy(y)
+
+    min_x = min(x)
+    min_y = min(y)
+    tbx_removed = []
+    tby_removed = []
+
+    for i in range(10):
+        close_x = min(range(len(x_copy)), key=lambda i: abs(x_copy[i]-min_x))
+        tb_removed += [close_x]
+        del x_copy[close_x]
+    
+        close_y = min(range(len(y_copy)), key=lambda i: abs(y_copy[i]-min_y))
+        tby_removed += [close_y]
+        del y_copy[close_y]
+
+    x_keys = [x.index(ele) for ele in x_copy].sort()
+    y_keys = [y.index(ele) for ele in y_copy].sort()
+
+    SA(t, x, y, x_keys=x_keys, y_keys=y_keys)
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -380,4 +484,5 @@ if __name__ == "__main__":
         # res += [[last_sol, best_sol, errors]]
     # save_to_csv(res)
 
-    reduce_random(t,x,y)
+    # reduce_random(t,x,y)
+    remove_data()
