@@ -27,6 +27,44 @@ def open_data():
     return t,x,y
 
 
+def save_to_csv(res):
+    """
+    Saves results to csv
+    """
+    print(res)
+    data = {}
+    lastsols = [list(exp[0][0]) for exp in res]
+    bestsols = [list(exp[1][0]) for exp in res]
+    errors   = [list(exp[2]) for exp in res]
+
+    data = {'lastsols': lastsols, 'bestsols': bestsols, 'errors': errors}
+
+    # for i,exp in enumerate(res):
+    #     data = {'last': last_sol[0], 'best': best_sol[0], 'errors': errors}
+    #     data[i] = []
+    
+    df = pd.DataFrame(data)
+    df.to_csv(path_or_buf='SA_exp_fulldataset.csv')
+
+
+def print_to_csv(results, filename):
+    """
+    Prints results to csv
+    """
+    with open(filename, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(results)
+    
+    # for i in results:
+    #     string = str(i)+','
+    #     for j,c in enumerate(results[i]):
+    #         string += str(c)+','
+
+    #     f = open(filename, "a")
+    #     f.write(string + '\n')
+    #     f.close()
+
+
 def integrate(param,t,x,y):
     a = param[0]
     b = param[1]
@@ -50,46 +88,25 @@ def integrate(param,t,x,y):
     return x_val, y_val
 
 
-def error(x, y, x_val, y_val, method='mean squared'):
+def error(x, y, x_val, y_val, error_method='mean squared'):
     '''
     Computes the loss between data and predictions
     x, y : data
     x_val, y_val: predictions
     method: which loss function to use 'mean squared' or 'absolute'
     '''
-    if method == 'mean squared':
+    if error_method == 'mean squared':
         error_x = np.average([(np.array(x)-np.array(x_val))**2])
         error_y = np.average([(np.array(y)-np.array(y_val))**2])
 
-    elif method == 'absolute':
+    elif error_method == 'absolute':
         error_x = np.mean(np.abs([np.array(x) - np.array(x_val)]))
         error_y = np.mean(np.abs([np.array(y) - np.array(y_val)]))
 
     return error_x + error_y
 
 
-def save_to_csv(res):
-    """
-    Saves results to csv
-    """
-    print(res)
-    data = {}
-    lastsols = [list(exp[0][0]) for exp in res]
-    bestsols = [list(exp[1][0]) for exp in res]
-    errors   = [list(exp[2]) for exp in res]
-
-    data = {'lastsols': lastsols, 'bestsols': bestsols, 'errors': errors}
-
-    # for i,exp in enumerate(res):
-    #     data = {'last': last_sol[0], 'best': best_sol[0], 'errors': errors}
-    #     data[i] = []
-    
-    df = pd.DataFrame(data)
-    df.to_csv(path_or_buf='SA_exp_fulldataset.csv')
-
-
-
-def hillclimber(t,x,y, method='mean squared', plot_error=False, plot_fit=False, steps=1000, 
+def hillclimber(t,x,y, error_method='mean squared', plot_error=False, plot_fit=False, steps=1000, 
                 n_runs=4):
     '''
     t, x, y: time, predator, prey data
@@ -105,10 +122,10 @@ def hillclimber(t,x,y, method='mean squared', plot_error=False, plot_fit=False, 
 
     for run in range(n_runs):
 
-        param = np.random.uniform(0.1, 3, size=4).tolist()
+        param = np.random.uniform(0, 2, size=4).tolist()
         x_est, y_est = integrate(param,t,x,y)
 
-        error_xy = error(x,y,x_est,y_est, method=method)
+        error_xy = error(x,y,x_est,y_est, error_method=error_method)
 
         all_error_xy = []
 
@@ -118,7 +135,7 @@ def hillclimber(t,x,y, method='mean squared', plot_error=False, plot_fit=False, 
             new_param[param.index(change)] = np.abs(change + np.random.normal(0,0.1))
             
             x_est, y_est = integrate(param,t,x,y)
-            new_error_xy = error(x,y,x_est,y_est, method=method)
+            new_error_xy = error(x,y,x_est,y_est, error_method=error_method)
 
 
             if new_error_xy < error_xy:
@@ -158,7 +175,20 @@ def hillclimber(t,x,y, method='mean squared', plot_error=False, plot_fit=False, 
 
     return best_param
 
-def SA(t, x, y, method='mean squared', cooling='linear'):
+
+def sigmoid_linmap(step, steps):
+    """
+    Returns a linear map to the inverse sigmoid function
+    """
+    def S(x):
+        return (1-np.exp(x)/(np.exp(x)+1))
+
+    linmap = step*(8/steps)-4
+
+    return S(linmap)
+
+
+def SA(t, x, y, run, error_method='mean squared', cooling='linear'):
     '''
     Simulated annealing algorithm
     t, x, y: time, predator, prey data
@@ -169,20 +199,28 @@ def SA(t, x, y, method='mean squared', cooling='linear'):
     all_errors = []
 
     # initializations
-    dT = 10e-5   # step size
-    Tf = 10e-5   # final temperature
-    if cooling != 'linear':
-        Tf = 0.065
-    Tc = 1   # current temperature
+    steps = 3*10e3
+    # steps = 100
+    Tc = 1        # current temperature
+    dT = Tc/steps # step size, scaled to amount of steps
+
+    # dT = 10e-5   # step size
+
+    Tf = 10e-5    # final temperature
+    if cooling == 'logarithmic':
+        Tf = 0.07
+    # elif cooling == 'geometric':
+    #     Tf = 0.01
 
     count = 1
-
     # param = list(np.random.uniform(0, 1, size=2)) + list(np.random.uniform(2, 4, size=2))
     param = np.random.uniform(0, 2, size=4)
     x_current, y_current = integrate(param, t, x, y)
-    error_current = error(x, y, x_current, y_current, method=method)
+    error_current = error(x, y, x_current, y_current, error_method=error_method)
     all_errors += [error_current]
     best_sol = [param, error_current]
+
+    all_Tc = [Tc]
 
     while Tc > Tf:
         # choose new parameters
@@ -191,7 +229,7 @@ def SA(t, x, y, method='mean squared', cooling='linear'):
         # print(noise)
         param_neighbour = np.abs(np.array(param) + noise)
         x_neighbour, y_neighbour = integrate(param_neighbour, t, x, y)
-        error_neighbour = error(x, y, x_neighbour, y_neighbour, method=method)
+        error_neighbour = error(x, y, x_neighbour, y_neighbour, error_method=error_method)
 
         diff = error_current - error_neighbour
 
@@ -204,8 +242,6 @@ def SA(t, x, y, method='mean squared', cooling='linear'):
                 error_current = error_neighbour
                 param = param_neighbour
 
-        # print('prob',np.exp(diff / Tc))
-
         all_errors += [error_current]
 
         if error_current < best_sol[1]:
@@ -213,11 +249,20 @@ def SA(t, x, y, method='mean squared', cooling='linear'):
 
         if cooling =='linear':
             Tc -= dT
-        else:
+        elif cooling == 'geometric':
+            Tc *= 0.999
+        elif cooling == 'sigmoid':
+            Tc = sigmoid_linmap(count, steps)
+        elif cooling == 'logarithmic':
             Tc = 0.7/np.log(1+count)
+
+        all_Tc += [Tc]
 
         # print(Tc)
         count += 1
+
+        if cooling == 'sigmoid' and count==steps:
+            break
 
     print('final parameters: \na: ',param[0],'\nb: ',param[1],'\ng: ',param[2],'\nd: ',param[3])
     print('best parameters: \na: ',best_sol[0][0],'\nb: ',best_sol[0][1],'\ng: ',best_sol[0][2],'\nd: ',best_sol[0][3])
@@ -227,22 +272,35 @@ def SA(t, x, y, method='mean squared', cooling='linear'):
     x_current, y_current = integrate(param, t, x, y)
     x_bestsol, y_bestsol = integrate(best_sol[0], t, x, y)
 
-    fig , ax = plt.subplots(1,2, figsize=(7, 4))
-    ax[0].plot(t, x_current, label='last est')
-    ax[0].plot(t, x_bestsol, label='best est')
-    ax[0].plot(t, x, label='real')
-    ax[0].set_title('predator')
-    ax[0].legend()
-    ax[1].plot(t, y_current, label='last est')
-    ax[1].plot(t, y_bestsol, label='best est')
-    ax[1].plot(t,y, label='real')
-    ax[1].set_title('prey')
-    ax[1].legend()
 
-    plt.show()
+    results = []
+    results += list(param)
+    results += list(best_sol[0])
+    results += all_errors
 
-    plt.plot(np.arange(0, len(all_errors), 1), all_errors)
-    plt.show()
+    filename = 'SA_'+cooling+'_'+error_method+'.csv'
+
+    print_to_csv(results, filename)
+
+    # fig , ax = plt.subplots(1,2, figsize=(7, 4))
+    # ax[0].plot(t, x_current, label='last est')
+    # ax[0].plot(t, x_bestsol, label='best est')
+    # ax[0].plot(t, x, label='real')
+    # ax[0].set_title('predator')
+    # ax[0].legend()
+    # ax[1].plot(t, y_current, label='last est')
+    # ax[1].plot(t, y_bestsol, label='best est')
+    # ax[1].plot(t,y, label='real')
+    # ax[1].set_title('prey')
+    # ax[1].legend()
+
+    # plt.show()
+
+    # plt.plot(np.arange(0, len(all_errors), 1), all_errors)
+    # plt.show()
+
+    # plt.plot(range(len(all_Tc)), all_Tc)
+    # plt.show()
 
     return [param, error_current], best_sol, all_errors
     
@@ -254,7 +312,7 @@ if __name__ == "__main__":
 
     t,x,y = open_data()
 
-    n_experiments = 1
+    n_experiments = 30
     # param=[0.3,0.3,0.3,0.3]
     # x_val, y_val = integrate(param,t,x,y)
 
@@ -265,6 +323,6 @@ if __name__ == "__main__":
     # params = hillclimber(t,x,y, plot_fit=True, n_runs=4, steps=2000)
     # res = []
     for i in range(n_experiments):
-        last_sol, best_sol, errors = SA(t, x, y, method='absolute', cooling='logarithmic')
+        last_sol, best_sol, errors = SA(t, x, y, i, error_method='mean squared', cooling='linear')
         # res += [[last_sol, best_sol, errors]]
     # save_to_csv(res)
