@@ -112,12 +112,12 @@ def error(x_prime, y_prime, x_val, y_val, x_keys, y_keys, error_method='mean squ
     y_val = [y_val[int(i)] for i in y_keys]
 
     if error_method == 'mean squared':
-        error_x = np.average([(np.array(x)-np.array(x_val))**2])
-        error_y = np.average([(np.array(y)-np.array(y_val))**2])
+        error_x = np.average([(np.array(x_prime)-np.array(x_val))**2])
+        error_y = np.average([(np.array(y_prime)-np.array(y_val))**2])
 
     elif error_method == 'absolute':
-        error_x = np.mean(np.abs([np.array(x) - np.array(x_val)]))
-        error_y = np.mean(np.abs([np.array(y) - np.array(y_val)]))
+        error_x = np.mean(np.abs([np.array(x_prime) - np.array(x_val)]))
+        error_y = np.mean(np.abs([np.array(y_prime) - np.array(y_val)]))
 
     return error_x + error_y
 
@@ -278,7 +278,7 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     # if y_keys.any():
     y_prime = [y[int(i)] for i in y_keys]
 
-    error_current = error(x, y, x_current, y_current, x_keys, y_keys, error_method=error_method)
+    error_current = error(x_prime, y_prime, x_current, y_current, x_keys, y_keys, error_method=error_method)
     all_errors += [error_current]
     best_sol = [param, error_current]
 
@@ -291,7 +291,7 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
         # print(noise)
         param_neighbour = np.abs(np.array(param) + noise)
         x_neighbour, y_neighbour = integrate(param_neighbour, t, x0, y0, x_keys, y_keys)
-        error_neighbour = error(x, y, x_neighbour, y_neighbour, x_keys, y_keys, error_method=error_method)
+        error_neighbour = error(x_prime, y_prime, x_neighbour, y_neighbour, x_keys, y_keys, error_method=error_method)
 
         diff = error_current - error_neighbour
 
@@ -338,53 +338,68 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     results = []
     results += list(param)
     results += list(best_sol[0])
-    results += all_errors
+    results += [all_errors[-1]]
+    results += [best_sol[1]]
 
     filename = 'SA_'+cooling+'_'+error_method+'.csv'
     if reducerand:
         filename = 'SA_'+cooling+'_'+error_method+'_reducerand_'+reducerand+'.csv'
 
-    # print_to_csv(results, filename)
+    print_to_csv(results, filename)
 
-    fig , ax = plt.subplots(1,2, figsize=(7, 4))
-    # ax[0].plot(t, x_current, label='last est')
-    ax[0].plot(t, x_bestsol, label='best est')
-    ax[0].plot(t, x, label='real')
-    ax[0].set_title('predator')
-    ax[0].legend()
-    # ax[1].plot(t, y_current, label='last est')
-    ax[1].plot(t, y_bestsol, label='best est')
-    ax[1].plot(t,y, label='real')
-    ax[1].set_title('prey')
-    ax[1].legend()
+    # fig , ax = plt.subplots(1,2, figsize=(7, 4))
+    # # ax[0].plot(t, x_current, label='last est')
+    # ax[0].plot(t, x_bestsol, label='best est')
+    # ax[0].plot(t, x, label='real')
+    # ax[0].set_title('predator')
+    # ax[0].legend()
+    # # ax[1].plot(t, y_current, label='last est')
+    # ax[1].plot(t, y_bestsol, label='best est')
+    # ax[1].plot(t,y, label='real')
+    # ax[1].set_title('prey')
+    # ax[1].legend()
 
-    plt.show()
+    # plt.show()
 
-    plt.plot(np.arange(0, len(all_errors), 1), all_errors)
-    plt.show()
+    # plt.plot(np.arange(0, len(all_errors), 1), all_errors)
+    # plt.show()
 
-    plt.plot(range(len(all_Tc)), all_Tc)
-    plt.show()
+    # plt.plot(range(len(all_Tc)), all_Tc)
+    # plt.show()
 
-    return [param, error_current], best_sol, all_errors
+    # return [param, error_current], best_sol, all_errors
 
 
 def reduce_random(t,x,y):
     """
     Randomly reduces 
     """
-    n_experiments = 1
+    n_experiments = 20
 
-    # # reduce x
+    # reduce x
     # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
     #     for i in range(n_experiments):
-    #         x_keys = np.random.choice(range(len(x)),size=int(perc*len(x)))
+    #         x_keys = list(np.random.choice(range(len(x)),size=int(perc*len(x))))
+    #         while not 0 in x_keys:
+    #             if perc == 0:
+    #                 x_keys += [0]
+    #                 break
+    #             del x_keys[-1]
+    #             x_keys += [0]
+
     #         SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='x', x_keys=x_keys)
 
     # reduce y
     for perc in [0.8, 0.6, 0.4, 0.2, 0]:
         for i in range(n_experiments):
-            y_keys = np.random.choice(range(len(y)),size=int(perc*len(y)))
+            y_keys = list(np.random.choice(range(len(y)),size=int(perc*len(y))))
+            while not 0 in y_keys:
+                if perc == 0:
+                    y_keys += [0]
+                    break
+                del y_keys[-1]
+                y_keys += [0]
+
             SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
 
 
@@ -484,5 +499,5 @@ if __name__ == "__main__":
         # res += [[last_sol, best_sol, errors]]
     # save_to_csv(res)
 
-    # reduce_random(t,x,y)
-    remove_data()
+    reduce_random(t,x,y)
+    # remove_data()
