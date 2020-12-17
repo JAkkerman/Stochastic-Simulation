@@ -65,7 +65,10 @@ def print_to_csv(results, filename):
     #     f.close()
 
 
-def integrate(param, t, x ,y, x_keys, y_keys):
+def integrate(param, t, x0, y0, x_keys, y_keys):
+    """
+    Integrates ODE based on simulated parameter values
+    """
     a = param[0]
     b = param[1]
     g = param[2]
@@ -78,7 +81,7 @@ def integrate(param, t, x ,y, x_keys, y_keys):
         dydt = d*x*y - g*y
         return dxdt, dydt
 
-    begin_pop = x[0],y[0]
+    begin_pop = x0, y0
     numint = odeint(eq, begin_pop, time, args=(a,b,g,d))
 
     x_val, y_val = numint.T
@@ -98,10 +101,10 @@ def error(x, y, x_val, y_val, x_keys, y_keys, error_method='mean squared'):
     x_val, y_val: predictions
     method: which loss function to use 'mean squared' or 'absolute'
     '''
-    if x_keys.any():
-        x = [x[i] for i in x_keys]
-    if y_keys.any():
-        y = [y[i] for i in y_keys]
+    # if x_keys.any():
+    #     x = [x[i] for i in x_keys]
+    # if y_keys.any():
+    #     y = [y[i] for i in y_keys]
 
     if error_method == 'mean squared':
         error_x = np.average([(np.array(x)-np.array(x_val))**2])
@@ -131,7 +134,7 @@ def hillclimber(t,x,y, error_method='mean squared', plot_error=False, plot_fit=F
     for run in range(n_runs):
 
         param = np.random.uniform(0, 2, size=4).tolist()
-        x_est, y_est = integrate(param,t,x,y)
+        x_est, y_est = integrate(param,t,x[0],y[0])
 
         error_xy = error(x,y,x_est,y_est, error_method=error_method)
 
@@ -142,7 +145,7 @@ def hillclimber(t,x,y, error_method='mean squared', plot_error=False, plot_fit=F
             new_param = param
             new_param[param.index(change)] = np.abs(change + np.random.normal(0,0.1))
             
-            x_est, y_est = integrate(param,t,x,y)
+            x_est, y_est = integrate(param,t,x[0],y[0])
             new_error_xy = error(x,y,x_est,y_est, error_method=error_method)
 
 
@@ -164,7 +167,7 @@ def hillclimber(t,x,y, error_method='mean squared', plot_error=False, plot_fit=F
     # select best fit
     min_error = min([val[0] for key, val in output.items()])
     best_param = [val[1] for key, val in output.items() if val[0] == min_error][0]
-    x_est, y_est = integrate(best_param,t,x,y)
+    x_est, y_est = integrate(best_param,t,x[0],y[0])
 
     if plot_fit == True:
         fig , ax = plt.subplots(1,2, figsize=(7, 4))
@@ -221,9 +224,19 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     #     Tf = 0.01
 
     count = 1
+
+    x0 = x[0]
+    y0 = y[0]
+
     # param = list(np.random.uniform(0, 1, size=2)) + list(np.random.uniform(2, 4, size=2))
     param = np.random.uniform(0, 2, size=4)
-    x_current, y_current = integrate(param, t, x, y, x_keys, y_keys)
+    x_current, y_current = integrate(param, t, x0, y0, x_keys, y_keys)
+
+    if x_keys.any():
+        x = [x[i] for i in x_keys]
+    if y_keys.any():
+        y = [y[i] for i in y_keys]
+
     error_current = error(x, y, x_current, y_current, x_keys, y_keys, error_method=error_method)
     all_errors += [error_current]
     best_sol = [param, error_current]
@@ -236,7 +249,7 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
         np.random.shuffle(noise)
         # print(noise)
         param_neighbour = np.abs(np.array(param) + noise)
-        x_neighbour, y_neighbour = integrate(param_neighbour, t, x, y, x_keys, y_keys)
+        x_neighbour, y_neighbour = integrate(param_neighbour, t, x0, y0, x_keys, y_keys)
         error_neighbour = error(x, y, x_neighbour, y_neighbour, x_keys, y_keys, error_method=error_method)
 
         diff = error_current - error_neighbour
@@ -323,16 +336,14 @@ def reduce_random(t,x,y):
 
     # reduce x
     for perc in [0.8, 0.6, 0.4, 0.2, 0]:
-        x_keys = np.random.choice(range(len(x)),size=int(perc*len(x)))
-
         for i in range(n_experiments):
+            x_keys = np.random.choice(range(len(x)),size=int(perc*len(x)))
             SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='x', x_keys=x_keys)
 
     # # reduce y
     # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
-    #     y_keys = np.random.choice(range(len(y)),size=int(perc*len(y)))
-
     #     for i in range(n_experiments):
+    #         y_keys = np.random.choice(range(len(y)),size=int(perc*len(y)))
     #         SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
 
 
