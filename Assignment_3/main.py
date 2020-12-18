@@ -48,7 +48,7 @@ def open_data():
 #     df.to_csv(path_or_buf='SA_exp_fulldataset.csv')
 
 
-def print_to_csv(results, filename):
+def print_to_csv(filename, results):
     """
     Prints results to csv
     """
@@ -122,8 +122,8 @@ def error(x_prime, y_prime, x_val, y_val, x_keys, y_keys, error_method='mean squ
     return error_x + error_y
 
 
-def hillclimber(t,x,y, error_method='mean squared', plot_error=False, plot_fit=False, steps=1000, 
-                n_runs=4):
+def hillclimber(t,x,y, error_method='mean squared', plot_error=False, plot_fit=False, steps=2000, 
+                n_runs=1):
     '''
     t, x, y: time, predator, prey data
     error: 'absolute'or 'mean squared', defines which loss function to use
@@ -136,60 +136,66 @@ def hillclimber(t,x,y, error_method='mean squared', plot_error=False, plot_fit=F
     # dictionary with key, value = run, (errors, params)
     output = {}
 
-    for run in range(n_runs):
+    errors = []
 
-        param = np.random.uniform(0, 2, size=4).tolist()
-        x_est, y_est = integrate(param,t,x[0],y[0])
+    # for run in range(n_runs):
 
-        error_xy = error(x,y,x_est,y_est, error_method=error_method)
+    param = np.random.uniform(0, 2, size=4).tolist()
+    x_est, y_est = integrate(param,t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
 
-        all_error_xy = []
+    error_xy = error(x,y,x_est,y_est, error_method=error_method, x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
 
-        for i in range(steps):
-            change = np.random.choice(param)
-            new_param = param
-            new_param[param.index(change)] = np.abs(change + np.random.normal(0,0.1))
-            
-            x_est, y_est = integrate(param,t,x[0],y[0])
-            new_error_xy = error(x,y,x_est,y_est, error_method=error_method)
+    all_error_xy = []
+
+    for i in range(steps):
+        change = np.random.choice(param)
+        new_param = param
+        new_param[param.index(change)] = np.abs(change + np.random.normal(0,0.1))
+        
+        x_est, y_est = integrate(param,t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
+        new_error_xy = error(x,y,x_est,y_est, error_method=error_method,x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
 
 
-            if new_error_xy < error_xy:
-                param = new_param
-                error_xy = new_error_xy
+        if new_error_xy < error_xy:
+            param = new_param
+            error_xy = new_error_xy
 
-        all_error_xy += [error_xy]
-        output[run] = [error_xy, new_param]
-
-    # select best fit
-    min_error = min([val[0] for key, val in output.items()])
-    best_param = [val[1] for key, val in output.items() if val[0] == min_error][0]
-
-    if plot_error ==  True:
-        plt.plot(range(steps), all_error_xy)
-        plt.show()
+    # all_error_xy += [error_xy]
+    # output[run] = [error_xy, new_param]
 
     # select best fit
-    min_error = min([val[0] for key, val in output.items()])
-    best_param = [val[1] for key, val in output.items() if val[0] == min_error][0]
-    x_est, y_est = integrate(best_param,t,x[0],y[0])
+    # min_error = min([val[0] for key, val in output.items()])
+    # best_param = [val[1] for key, val in output.items() if val[0] == min_error][0]
 
-    if plot_fit == True:
-        fig , ax = plt.subplots(1,2, figsize=(7, 4))
-        ax[0].plot(t, x_est, label='est')
-        ax[0].plot(t, x, label='real')
-        ax[0].set_title('predator')
-        ax[0].legend()
-        # for i,tval in enumerate(t):
-        #     plt.arrow(tval, min(x[i], x_val[i]), 0, max(x[i],x_val[i]))
-        ax[1].plot(t, y_est, label='est')
-        ax[1].plot(t,y, label='real')
-        ax[1].set_title('prey')
-        ax[1].legend()
+    # if plot_error ==  True:
+    #     plt.plot(range(steps), all_error_xy)
+    #     plt.show()
 
-        plt.show()
+    # # select best fit
+    # min_error = min([val[0] for key, val in output.items()])
+    # best_param = [val[1] for key, val in output.items() if val[0] == min_error][0]
+    # x_est, y_est = integrate(best_param,t,x[0],y[0])
 
-    return best_param
+    # if plot_fit == True:
+    #     fig , ax = plt.subplots(1,2, figsize=(7, 4))
+    #     ax[0].plot(t, x_est, label='est')
+    #     ax[0].plot(t, x, label='real')
+    #     ax[0].set_title('predator')
+    #     ax[0].legend()
+    #     # for i,tval in enumerate(t):
+    #     #     plt.arrow(tval, min(x[i], x_val[i]), 0, max(x[i],x_val[i]))
+    #     ax[1].plot(t, y_est, label='est')
+    #     ax[1].plot(t,y, label='real')
+    #     ax[1].set_title('prey')
+    #     ax[1].legend()
+
+    #     plt.show()
+
+    filename = 'hillclimber_res.csv'
+
+    print_to_csv(filename, [error_xy])
+
+    # return best_param
 
 
 def sigmoid_linmap(step, steps):
@@ -274,6 +280,7 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     
 
     # if x_keys.any():
+    # x_keys = np.sort(x_keys)
     x_prime = [x[int(i)] for i in x_keys]
     
     # if y_keys.any():
@@ -327,14 +334,14 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
         if cooling == 'sigmoid' and count==steps:
             break
 
-    print('final parameters: \na: ',param[0],'\nb: ',param[1],'\ng: ',param[2],'\nd: ',param[3])
-    print('best parameters: \na: ',best_sol[0][0],'\nb: ',best_sol[0][1],'\ng: ',best_sol[0][2],'\nd: ',best_sol[0][3])
-    print('final ratio a/b: ', round(param[0]/param[1],2), ',final ratio g/d:', round(param[2]/param[3],2))
-    print('best ratio a/b: ', round(best_sol[0][0]/best_sol[0][1],2), ',best ratio g/d:', round(best_sol[0][2]/best_sol[0][3],2))
+    # print('final parameters: \na: ',param[0],'\nb: ',param[1],'\ng: ',param[2],'\nd: ',param[3])
+    # print('best parameters: \na: ',best_sol[0][0],'\nb: ',best_sol[0][1],'\ng: ',best_sol[0][2],'\nd: ',best_sol[0][3])
+    # print('final ratio a/b: ', round(param[0]/param[1],2), ',final ratio g/d:', round(param[2]/param[3],2))
+    # print('best ratio a/b: ', round(best_sol[0][0]/best_sol[0][1],2), ',best ratio g/d:', round(best_sol[0][2]/best_sol[0][3],2))
 
     # print(x)
     # x_current, y_current = integrate(param, t, x0, y0, x_keys, y_keys)
-    x_bestsol, y_bestsol = integrate(best_sol[0], t, x0, y0, x_keys, y_keys)
+    # x_bestsol, y_bestsol = integrate(best_sol[0], t, x0, y0, x_keys, y_keys)
 
     results = []
     results += list(param)
@@ -351,7 +358,7 @@ def SA(t, x, y, run, error_method='mean squared', cooling='linear', reducerand=F
     # fig , ax = plt.subplots(1,2, figsize=(7, 4))
     # # ax[0].plot(t, x_current, label='last est')
     # ax[0].plot(t, x_bestsol, label='best est')
-    # ax[0].plot(t, x, label='real')
+    # ax[0].plot(np.sort([t[i] for i in x_keys]), x_prime, label='real')
     # ax[0].set_title('predator')
     # ax[0].legend()
     # # ax[1].plot(t, y_current, label='last est')
@@ -375,25 +382,53 @@ def reduce_random(t,x,y):
     """
     Randomly reduces 
     """
-    n_experiments = 20
+    n_experiments = 30
 
     # reduce x
     # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
     #     for i in range(n_experiments):
-    #         x_keys = list(np.random.choice(range(len(x)),size=int(perc*len(x))))
-    #         while not 0 in x_keys:
-    #             if perc == 0:
-    #                 x_keys += [0]
-    #                 break
-    #             del x_keys[-1]
-    #             x_keys += [0]
+
+    #         print('perc:', perc,', iter:', i)
+
+    #         x_keys = list(np.random.choice(range(len(x)),size=int(perc*len(x)), replace=False))
+            # while not 0 in x_keys:
+            #     if perc == 0:
+            #         x_keys += [0]
+            #         break
+            #     del x_keys[-1]
+            #     x_keys += [0]
+
+            # x_keys = np.sort(x_keys)
 
     #         SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='x', x_keys=x_keys)
 
     # reduce y
+    # for perc in [0.8, 0.6, 0.4, 0.2, 0]:
+    #     for i in range(n_experiments):
+
+    #         print('perc:', perc,', iter:', i)
+
+    #         y_keys = list(np.random.choice(range(len(y)),size=int(perc*len(y)), replace=False))
+    #         while not 0 in y_keys:
+    #             if perc == 0:
+    #                 y_keys += [0]
+    #                 break
+    #             del y_keys[-1]
+    #             y_keys += [0]
+
+    #         y_keys = np.sort(y_keys)
+
+    #         SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
+
+    # reduce both x and y
     for perc in [0.8, 0.6, 0.4, 0.2, 0]:
         for i in range(n_experiments):
-            y_keys = list(np.random.choice(range(len(y)),size=int(perc*len(y))))
+
+            print('perc:', perc,', iter:', i)
+
+            x_keys = list(np.random.choice(range(len(x)),size=int(perc*len(x)), replace=False))
+            y_keys = list(np.random.choice(range(len(y)),size=int(perc*len(y)), replace=False))
+
             while not 0 in y_keys:
                 if perc == 0:
                     y_keys += [0]
@@ -401,7 +436,17 @@ def reduce_random(t,x,y):
                 del y_keys[-1]
                 y_keys += [0]
 
-            SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='y', y_keys=y_keys)
+            while not 0 in x_keys:
+                if perc == 0:
+                    x_keys += [0]
+                    break
+                del x_keys[-1]
+                x_keys += [0]
+
+            x_keys = np.sort(x_keys)
+            y_keys = np.sort(y_keys)
+
+            SA(t, x, y, i, error_method='mean squared', cooling='linear', reducerand='xy', x_keys=x_keys, y_keys=y_keys)
 
 
 def remove_data(n_remove):
@@ -491,8 +536,8 @@ if __name__ == "__main__":
     # if error_type == 'means_sq':
     #     error_x, error_y = means_sq(x,y,x_val,y_val)
     #     print(error_x, error_y)
-
-    # params = hillclimber(t,x,y, plot_fit=True, n_runs=4, steps=2000)
+    for i in range(29):
+        hillclimber(t,x,y, plot_fit=True, n_runs=1, steps=2000)
     # res = []
     # for i in range(n_experiments):
         # last_sol, best_sol, errors = SA(t, x, y, i, error_method='absolute', cooling='linear')
@@ -500,5 +545,5 @@ if __name__ == "__main__":
     # save_to_csv(res)
 
     # reduce_random(t,x,y)
-    for n in [20]:
-        remove_data(n)
+    # for n in [20]:
+        # remove_data(n)

@@ -2,6 +2,7 @@
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats
 
 from main import error 
 from main import integrate
@@ -95,6 +96,89 @@ def boxplots():
     plot_best(all_overal_min)
 
 
+def boxplots_all_MSE():
+    """
+    Makes boxplots of found errors, converges best of MAE to MSE
+    """
+
+    
+    # all_overal_min = []
+
+    best_MAE = []
+    last_MAE = []
+    best_MSE = []
+    last_MSE = []
+
+    for j,error_method in enumerate(['absolute','mean squared']):
+
+        all_best = []
+        all_last = []
+
+        
+
+        t,x,y = open_data()
+
+        cooling = 'linear'
+        filename = 'SA_'+cooling+'_'+error_method+'.csv'
+        with open(filename) as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+
+            overal_min = [10,[]]
+
+            if error_method == 'absolute':
+
+                best_coeff = []
+                last_coeff = []
+
+                for i,row in enumerate(reader):
+                    # errors = np.single(np.array(row[8:]))
+                    # print(errors)
+                    best_coeff += [list(np.single(np.array(row[4:8])))]
+                    last_coeff += [list(np.single(np.array(row[0:4])))]
+
+                # print(best_coeff)
+
+
+                best_xyval = [integrate(i,t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100)) for i in best_coeff]
+                # print(best_xyval)
+
+                best_MAE = [error(x, y, p[0], p[1], np.linspace(0,99,100), np.linspace(0,99,100), error_method='mean squared')  for p in best_xyval]
+
+                last_xyval = [integrate(i,t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100)) for i in last_coeff]
+                last_MAE = [error(x, y, p[0], p[1], np.linspace(0,99,100), np.linspace(0,99,100), error_method='mean squared')  for p in last_xyval]
+            
+            else:
+                for i,row in enumerate(reader):
+                    errors = np.single(np.array(row[8:]))
+                    best_MSE += [np.single(min(errors))]
+                    last_MSE += [np.single(errors[-1])]
+                    
+
+
+        # print(all_best)
+
+                # print(row[:8])
+                # print(np.single(min(errors)),'\n')
+
+    # print(overal_min)
+    # print(all_best)
+    # print(all_last)
+
+    fig, ax = plt.subplots(1,2, figsize=[8,3])
+    ax[0].boxplot([last_MAE, last_MSE], labels=['MAE last', 'MSE last'], widths=0.6)
+    ax[0].set_title('last results', fontsize=12)
+    ax[0].set_ylabel('mean squared error', fontsize=12)
+
+    ax[1].boxplot([best_MAE, best_MSE], labels=['MAE best', 'MSE best'], widths=0.6)
+    ax[1].set_title('best results', fontsize=12)
+    ax[1].set_ylabel('mean squared error', fontsize=12)
+
+    # all_overal_min += [overal_min]
+
+    # plt.show()
+    plt.savefig('boxplot_error_compare.pdf')
+
+
 def boxplot_randomreduce():
 
     for q in ['x', 'y']:
@@ -103,7 +187,7 @@ def boxplot_randomreduce():
 
         cooling = 'linear'
         error_method = 'mean squared'
-        filename = 'SA_'+cooling+'_'+error_method+'_reducerand_'+q+'.csv'
+        filename = 'SA_'+cooling+'_'+error_method+'_removed_data_'+q+'.csv'
         with open(filename) as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
 
@@ -113,11 +197,14 @@ def boxplot_randomreduce():
 
                     t,x,y = open_data()
 
-                    x_val, y_val = integrate(np.single(np.array(row[4:8])),t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
+                    # print(row[4:8])
+
+                    x_val, y_val = integrate(np.single(np.array(row[0:4])),t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
                     errors += [error(x, y, x_val, y_val, np.linspace(0,99,100), np.linspace(0,99,100), error_method='mean squared')]
 
-        # print([errors[10*i:10*i+10] for i in range(10)])
-        plt.boxplot([errors[10*i:10*i+10] for i in range(5)], labels=['$80\%$', '$60\%$', '$40\%$' ,'$20\%$', '$0\%$'], showfliers=False)
+        # print(errors)
+        # print([errors[30*i:30*i+30] for i in range(5)])
+        plt.boxplot([errors[30*i:30*i+30] for i in range(5)], labels=['$80\%$', '$60\%$', '$40\%$' ,'$20\%$', '$0\%$'], showfliers=False)
         title = 'predators for different amounts of random reduction'
         if q == 'y':
             title = 'prey for different amounts of random reduction'
@@ -125,11 +212,88 @@ def boxplot_randomreduce():
         plt.xlabel('reduced percentage')
         plt.ylabel('mean squared error')
         plt.tight_layout()
-        # plt.show()
-        plt.savefig('boxplot_randred_'+q+'.pdf')
+        plt.show()
+        # plt.savefig('boxplot_randred_'+q+'.pdf')
 
 
+def boxplot_reduceboth():
 
+    fig = plt.subplots(figsize=(7,3))
+
+    cooling = 'linear'
+    error_method = 'mean squared'
+    filename = 'SA_'+cooling+'_'+error_method+'_removed_data_xy.csv'
+
+    with open(filename) as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+
+            errors = []
+            for i,row in enumerate(reader):
+                t,x,y = open_data()
+
+                x_val, y_val = integrate(np.single(np.array(row[4:8])),t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
+                errors += [error(x, y, x_val, y_val, np.linspace(0,99,100), np.linspace(0,99,100), error_method='mean squared')]
+
+    # print(errors)
+    # print([errors[30*i:30*i+30] for i in range(5)])
+    plt.boxplot([errors[30*i:30*i+30] for i in range(4)], labels=['$80\%$', '$60\%$', '$40\%$' ,'$20\%$'], showfliers=True)
+    plt.title('reduction of both x and y')
+    plt.xlabel('reduced percentage')
+    plt.ylabel('mean squared error')
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig('boxplot_randred_xy.pdf')
+
+
+def boxplot_HC_SA():
+    HC_MSE = []
+    SA_MSE = []
+
+    with open('hillclimber_res.csv') as csvfile:
+        for i,row in enumerate(csvfile):
+            HC_MSE += [np.single(row)]
+
+    with open('SA_linear_mean squared.csv') as csvfile:
+
+        reader = csv.reader(csvfile, delimiter=',')
+
+        for i,row in enumerate(reader):
+            errors = np.single(np.array(row))
+            print(errors[0:10])
+            print(errors[8:10])
+            errors = errors[8:]
+            # print(errors[0])
+            # print(errors)
+            # print(min(errors))
+            SA_MSE += [np.single(min(errors))]
+            # all_last += [np.single(errors[-1])]
+
+            plt.plot(errors, range(len(errors)))
+
+    plt.yscale('log')
+    # plt.show()
+
+    # print(SA_MSE)
+
+    # print(np.average(SA_MSE))
+    # print(np.average(HC_MSE))
+
+    # fig, ax = plt.subplots(figsize=[5,4])
+
+    # plt.boxplot([HC_MSE, SA_MSE], labels=['HC', 'SA'], showfliers=True, widths=0.6)
+    # plt.title('performance of HC and SA')
+    # # plt.xlabel('reduced percentage')
+    # plt.ylabel('mean squared error')
+    # plt.tight_layout()
+    # plt.show()
+    # plt.savefig('boxplot_HC_SA.pdf')
+
+    print(scipy.stats.ttest_ind(HC_MSE, SA_MSE))
+
+    SA_MSE = np.array(SA_MSE)
+    SA_MSE = SA_MSE[abs(SA_MSE - np.mean(SA_MSE)) < 1.96 * np.std(SA_MSE)]
+
+    print(scipy.stats.ttest_ind(HC_MSE, SA_MSE))
 
 
 
@@ -137,4 +301,10 @@ if __name__ == '__main__':
     
     # boxplots()
 
-    boxplot_randomreduce()
+    # boxplot_randomreduce()
+
+    # boxplots_all_MSE()
+
+    # boxplot_reduceboth()
+
+    boxplot_HC_SA()
