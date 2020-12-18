@@ -69,8 +69,8 @@ def error(x_prime, y_prime, x_val, y_val, x_keys, y_keys, error_method='mean squ
     method: which loss function to use 'mean squared' or 'absolute'
     '''
 
-    x_val = [x_val[int(i)] for i in x_keys]
-    y_val = [y_val[int(i)] for i in y_keys]
+    # x_val = [x_val[int(i)] for i in x_keys]
+    # y_val = [y_val[int(i)] for i in y_keys]
 
     if error_method == 'mean squared':
         error_x = np.average([(np.array(x_prime)-np.array(x_val))**2])
