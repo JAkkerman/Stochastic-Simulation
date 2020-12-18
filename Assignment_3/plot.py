@@ -180,6 +180,9 @@ def boxplots_all_MSE():
 
 
 def boxplot_randomreduce():
+    """
+    Plots boxplots for random reduction
+    """
 
     for q in ['x', 'y']:
 
@@ -193,17 +196,11 @@ def boxplot_randomreduce():
 
                 errors = []
                 for i,row in enumerate(reader):
-                    # print(row[4:8])
 
                     t,x,y = open_data()
 
-                    # print(row[4:8])
-
                     x_val, y_val = integrate(np.single(np.array(row[0:4])),t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
                     errors += [error(x, y, x_val, y_val, np.linspace(0,99,100), np.linspace(0,99,100), error_method='mean squared')]
-
-        # print(errors)
-        # print([errors[30*i:30*i+30] for i in range(5)])
         plt.boxplot([errors[30*i:30*i+30] for i in range(5)], labels=['$80\%$', '$60\%$', '$40\%$' ,'$20\%$', '$0\%$'], showfliers=False)
         title = 'predators for different amounts of random reduction'
         if q == 'y':
@@ -213,10 +210,13 @@ def boxplot_randomreduce():
         plt.ylabel('mean squared error')
         plt.tight_layout()
         plt.show()
-        # plt.savefig('boxplot_randred_'+q+'.pdf')
+
 
 
 def boxplot_reduceboth():
+    """
+    plots boxplots for random reduction of both time series
+    """
 
     fig = plt.subplots(figsize=(7,3))
 
@@ -234,14 +234,11 @@ def boxplot_reduceboth():
                 x_val, y_val = integrate(np.single(np.array(row[4:8])),t,x[0],y[0], x_keys=np.linspace(0,99,100), y_keys=np.linspace(0,99,100))
                 errors += [error(x, y, x_val, y_val, np.linspace(0,99,100), np.linspace(0,99,100), error_method='mean squared')]
 
-    # print(errors)
-    # print([errors[30*i:30*i+30] for i in range(5)])
     plt.boxplot([errors[30*i:30*i+30] for i in range(4)], labels=['$80\%$', '$60\%$', '$40\%$' ,'$20\%$'], showfliers=True)
     plt.title('reduction of both x and y')
     plt.xlabel('reduced percentage')
     plt.ylabel('mean squared error')
     plt.tight_layout()
-    # plt.show()
     plt.savefig('boxplot_randred_xy.pdf')
 
 
@@ -262,11 +259,7 @@ def boxplot_HC_SA():
             print(errors[0:10])
             print(errors[8:10])
             errors = errors[8:]
-            # print(errors[0])
-            # print(errors)
-            # print(min(errors))
             SA_MSE += [np.single(min(errors))]
-            # all_last += [np.single(errors[-1])]
 
             plt.plot(errors, range(len(errors)))
 
