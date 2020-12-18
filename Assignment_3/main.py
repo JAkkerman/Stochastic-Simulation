@@ -500,5 +500,5 @@ if __name__ == "__main__":
     # save_to_csv(res)
 
     # reduce_random(t,x,y)
-    for n in [10, 20]:
+    for n in [20]:
         remove_data(n)

@@ -99,6 +99,8 @@ def boxplot_randomreduce():
 
     for q in ['x', 'y']:
 
+        fig = plt.subplots(figsize=(7,3))
+
         cooling = 'linear'
         error_method = 'mean squared'
         filename = 'SA_'+cooling+'_'+error_method+'_reducerand_'+q+'.csv'
@@ -116,7 +118,15 @@ def boxplot_randomreduce():
 
         # print([errors[10*i:10*i+10] for i in range(10)])
         plt.boxplot([errors[10*i:10*i+10] for i in range(5)], labels=['$80\%$', '$60\%$', '$40\%$' ,'$20\%$', '$0\%$'], showfliers=False)
-        plt.show()
+        title = 'predators for different amounts of random reduction'
+        if q == 'y':
+            title = 'prey for different amounts of random reduction'
+        plt.title(title)
+        plt.xlabel('reduced percentage')
+        plt.ylabel('mean squared error')
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig('boxplot_randred_'+q+'.pdf')
 
 
 
